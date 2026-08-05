@@ -1,0 +1,3 @@
+-- Rode este UPDATE manualmente após o primeiro cadastro do proprietário do
+-- portal, substituindo o e-mail abaixo, para promovê-lo a administrador.
+-- update public.profiles set role = 'admin' where email = 'seu-email@exemplo.com';
