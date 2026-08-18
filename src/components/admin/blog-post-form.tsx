@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { CONTENT_STATUS_LABELS } from "@/lib/labels";
 
 export function BlogPostForm({
   postId,
@@ -81,7 +82,9 @@ export function BlogPostForm({
                 onValueChange={(value) => form.setValue("categoryId", value ?? "")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione" />
+                  <SelectValue placeholder="Selecione">
+                    {(value: string) => categories.find((c) => c.id === value)?.name ?? "Selecione"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => (
@@ -102,7 +105,7 @@ export function BlogPostForm({
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value: string) => CONTENT_STATUS_LABELS[value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Rascunho</SelectItem>

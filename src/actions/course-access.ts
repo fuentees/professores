@@ -3,12 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { requireActiveProfile } from "@/lib/auth/require-active-profile";
+import { hasSubscriberAccess } from "@/lib/access/subscriber-access";
 
 export type ActionResult = { error: string | null; url?: string };
 
+type LessonFileWithCourse = {
+  storage_path: string;
+  lesson: {
+    status: string;
+    module: {
+      course: { id: string; status: string; access_type: string } | null;
+    } | null;
+  } | null;
+};
+
 export async function markLessonComplete(lessonId: string): Promise<ActionResult> {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para acompanhar seu progresso." };
 
   const supabase = await createClient();
@@ -28,17 +39,31 @@ export async function markLessonComplete(lessonId: string): Promise<ActionResult
 }
 
 export async function getLessonFileDownloadUrl(lessonFileId: string): Promise<ActionResult> {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para baixar este arquivo." };
 
   const admin = createAdminClient();
   const { data: file } = await admin
     .from("lesson_files")
-    .select("storage_path")
+    .select(
+      "storage_path, lesson:course_lessons(status, module:course_modules(course:courses(id, status, access_type)))",
+    )
     .eq("id", lessonFileId)
-    .single();
+    .single()
+    .returns<LessonFileWithCourse>();
 
   if (!file) return { error: "Arquivo não encontrado." };
+
+  const course = file.lesson?.module?.course;
+  if (!course || course.status !== "published" || file.lesson?.status !== "active") {
+    return { error: "Esta aula não está disponível." };
+  }
+  if (course.access_type === "subscriber_only") {
+    const entitled = await hasSubscriberAccess(admin, profile.id, { courseId: course.id });
+    if (!entitled) {
+      return { error: "Este curso é exclusivo para assinantes de um plano pago." };
+    }
+  }
 
   const { data: signed, error } = await admin.storage
     .from("private")

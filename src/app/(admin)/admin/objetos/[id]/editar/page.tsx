@@ -22,6 +22,8 @@ export default async function EditarObjetoPage({
     externalUrl: obj.external_url ?? "",
     accessType: obj.access_type,
     status: obj.status,
+    activityType: obj.activity_type,
+    config: obj.config,
   };
 
   return (
@@ -38,7 +40,7 @@ export default async function EditarObjetoPage({
         onUpload={uploadLearningObjectCover}
       />
 
-      {!obj.external_url && (
+      {!obj.external_url && !obj.activity_type && (
         <LearningObjectFileManager objectId={id} hasFile={Boolean(obj.storage_path)} />
       )}
 

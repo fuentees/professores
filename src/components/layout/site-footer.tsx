@@ -13,9 +13,15 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="font-medium">Navegação</p>
+          <p className="font-medium">Explorar</p>
           <Link href="/materiais" className="text-muted-foreground hover:text-foreground">
             Materiais
+          </Link>
+          <Link href="/pastas" className="text-muted-foreground hover:text-foreground">
+            Pastas
+          </Link>
+          <Link href="/objetos" className="text-muted-foreground hover:text-foreground">
+            Recursos interativos
           </Link>
           <Link href="/cursos" className="text-muted-foreground hover:text-foreground">
             Cursos
@@ -23,18 +29,18 @@ export function SiteFooter() {
           <Link href="/bncc" className="text-muted-foreground hover:text-foreground">
             BNCC
           </Link>
-          <Link href="/planos" className="text-muted-foreground hover:text-foreground">
-            Planos
-          </Link>
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="font-medium">Institucional</p>
-          <Link href="/termos" className="text-muted-foreground hover:text-foreground">
-            Termos de uso
+          <p className="font-medium">Comunidade</p>
+          <Link href="/forum" className="text-muted-foreground hover:text-foreground">
+            Fórum
           </Link>
-          <Link href="/privacidade" className="text-muted-foreground hover:text-foreground">
-            Política de privacidade
+          <Link href="/blog" className="text-muted-foreground hover:text-foreground">
+            Blog
+          </Link>
+          <Link href="/planos" className="text-muted-foreground hover:text-foreground">
+            Planos
           </Link>
         </div>
       </div>

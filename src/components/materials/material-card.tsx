@@ -49,7 +49,7 @@ export function MaterialCard({ material }: { material: MaterialCardData }) {
             <span key={name}>{name}</span>
           ))}
         </div>
-        <h3 className="line-clamp-2 font-semibold group-hover:underline">{material.title}</h3>
+        <h2 className="line-clamp-2 font-semibold group-hover:underline">{material.title}</h2>
         {material.short_description && (
           <p className="line-clamp-2 text-sm text-muted-foreground">{material.short_description}</p>
         )}

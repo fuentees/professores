@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
+import { friendlyDeleteError } from "@/lib/supabase/errors";
 import {
   bnccComponentSchema,
   bnccKnowledgeAreaSchema,
@@ -47,7 +48,9 @@ export async function deleteBnccStage(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { error } = await supabase.from("bncc_stages").delete().eq("id", id);
-  if (error) return { error: "Não é possível excluir: existem áreas vinculadas a esta etapa." };
+  if (error) {
+    return { error: friendlyDeleteError(error, "Não é possível excluir: existem áreas vinculadas a esta etapa.") };
+  }
   revalidatePath(BNCC_PATH);
   return { error: null };
 }
@@ -77,7 +80,11 @@ export async function deleteBnccKnowledgeArea(id: string): Promise<ActionResult>
 
   const supabase = await createClient();
   const { error } = await supabase.from("bncc_knowledge_areas").delete().eq("id", id);
-  if (error) return { error: "Não é possível excluir: existem componentes vinculados a esta área." };
+  if (error) {
+    return {
+      error: friendlyDeleteError(error, "Não é possível excluir: existem componentes vinculados a esta área."),
+    };
+  }
   revalidatePath(BNCC_PATH);
   return { error: null };
 }
@@ -107,7 +114,11 @@ export async function deleteBnccComponent(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { error } = await supabase.from("bncc_components").delete().eq("id", id);
-  if (error) return { error: "Não é possível excluir: existem habilidades vinculadas a este componente." };
+  if (error) {
+    return {
+      error: friendlyDeleteError(error, "Não é possível excluir: existem habilidades vinculadas a este componente."),
+    };
+  }
   revalidatePath(BNCC_PATH);
   return { error: null };
 }
@@ -186,17 +197,17 @@ export async function linkContentBnccSkill(contentId: string, skillId: string): 
     .from("content_bncc_skills")
     .insert({ content_id: contentId, bncc_skill_id: skillId });
   if (error) return { error: error.message };
-  revalidatePath("/admin/materiais");
+  revalidatePath(`/admin/materiais/${contentId}/editar`);
   return { error: null };
 }
 
-export async function unlinkContentBnccSkill(id: string): Promise<ActionResult> {
+export async function unlinkContentBnccSkill(id: string, contentId: string): Promise<ActionResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
 
   const supabase = await createClient();
   const { error } = await supabase.from("content_bncc_skills").delete().eq("id", id);
   if (error) return { error: error.message };
-  revalidatePath("/admin/materiais");
+  revalidatePath(`/admin/materiais/${contentId}/editar`);
   return { error: null };
 }

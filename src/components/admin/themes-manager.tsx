@@ -40,7 +40,9 @@ export function ThemesManager({
             onValueChange={(value) => form.setValue("curriculumUnitId", value ?? "")}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione a unidade" />
+              <SelectValue placeholder="Selecione a unidade">
+                {(value: string) => (value ? unitName(value) : "Selecione a unidade")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {curriculumUnits.map((u) => (

@@ -37,11 +37,15 @@ export function ContentStatusSelect({ id, status }: { id: string; status: Conten
         </Badge>
       </SelectTrigger>
       <SelectContent>
-        {Object.entries(LABELS).map(([value, label]) => (
-          <SelectItem key={value} value={value}>
-            {label}
-          </SelectItem>
-        ))}
+        {Object.entries(LABELS)
+          // "Agendado" precisa de uma data — só disponível na tela de edição
+          // completa do material, não faz sentido nesse seletor rápido.
+          .filter(([value]) => value !== "scheduled")
+          .map(([value, label]) => (
+            <SelectItem key={value} value={value}>
+              {label}
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );

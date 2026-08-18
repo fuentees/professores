@@ -11,6 +11,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -44,32 +45,20 @@ export function UserMenu({ profile }: { profile: CurrentProfile }) {
           <DropdownMenuLabel className="truncate">{profile.email}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          render={
-            <Link href="/painel">
-              <LayoutDashboard className="h-4 w-4" />
-              Meu painel
-            </Link>
-          }
-        />
+        <DropdownMenuLinkItem render={<Link href="/painel" />}>
+          <LayoutDashboard className="h-4 w-4" />
+          Meu painel
+        </DropdownMenuLinkItem>
         {profile.role === "admin" && (
-          <DropdownMenuItem
-            render={
-              <Link href="/admin">
-                <ShieldCheck className="h-4 w-4" />
-                Painel administrativo
-              </Link>
-            }
-          />
+          <DropdownMenuLinkItem render={<Link href="/admin" />}>
+            <ShieldCheck className="h-4 w-4" />
+            Painel administrativo
+          </DropdownMenuLinkItem>
         )}
-        <DropdownMenuItem
-          render={
-            <Link href="/painel/perfil">
-              <Settings className="h-4 w-4" />
-              Meu perfil
-            </Link>
-          }
-        />
+        <DropdownMenuLinkItem render={<Link href="/painel/perfil" />}>
+          <Settings className="h-4 w-4" />
+          Meu perfil
+        </DropdownMenuLinkItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"

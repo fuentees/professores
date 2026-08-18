@@ -61,7 +61,7 @@ export function PlansManager({ rows }: { rows: PlanRow[] }) {
                 onValueChange={(value) => form.setValue("billingPeriod", value ?? "free")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value: string) => BILLING_LABELS[value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="free">Gratuito</SelectItem>

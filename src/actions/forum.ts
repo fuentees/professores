@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { forumReplySchema, forumTopicSchema } from "@/lib/validations/forum";
 
 export type ActionResult = { error: string | null; id?: string };
@@ -11,7 +11,7 @@ export async function createTopic(categorySlug: string, input: unknown): Promise
   const parsed = forumTopicSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para criar um tópico." };
 
   const supabase = await createClient();
@@ -42,7 +42,7 @@ export async function createReply(topicId: string, input: unknown): Promise<Acti
   const parsed = forumReplySchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para responder." };
 
   const supabase = await createClient();
@@ -61,11 +61,15 @@ export async function updateReply(replyId: string, input: unknown): Promise<Acti
   const parsed = forumReplySchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para editar esta resposta." };
+
   const supabase = await createClient();
   const { data: reply, error } = await supabase
     .from("forum_replies")
     .update({ body: parsed.data.body })
     .eq("id", replyId)
+    .eq("author_id", profile.id)
     .select("topic_id")
     .single();
 
@@ -75,16 +79,30 @@ export async function updateReply(replyId: string, input: unknown): Promise<Acti
 }
 
 export async function deleteOwnReply(replyId: string): Promise<ActionResult> {
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para excluir esta resposta." };
+
   const supabase = await createClient();
   const { data: reply } = await supabase
     .from("forum_replies")
     .select("topic_id")
     .eq("id", replyId)
+    .eq("author_id", profile.id)
     .single();
 
-  const { error } = await supabase.from("forum_replies").delete().eq("id", replyId);
-  if (error) return { error: "Não foi possível excluir a resposta." };
+  if (!reply) return { error: "Resposta não encontrada." };
 
-  if (reply) revalidatePath(`/forum/topico/${reply.topic_id}`);
+  const { data: deleted, error } = await supabase
+    .from("forum_replies")
+    .delete()
+    .eq("id", replyId)
+    .eq("author_id", profile.id)
+    .select("id");
+
+  if (error || !deleted || deleted.length === 0) {
+    return { error: "Não foi possível excluir a resposta." };
+  }
+
+  revalidatePath(`/forum/topico/${reply.topic_id}`);
   return { error: null };
 }

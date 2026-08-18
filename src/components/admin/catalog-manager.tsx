@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const STATUS_LABELS: Record<"active" | "inactive", string> = { active: "Ativo", inactive: "Inativo" };
+
 export type CatalogRow = {
   id: string;
   name: string;
@@ -188,7 +190,9 @@ export function CatalogManager<TRow extends CatalogRow, TValues extends FieldVal
                     }
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue>
+                        {(value: "active" | "inactive") => STATUS_LABELS[value]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="active">Ativo</SelectItem>

@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
-import { coverStoragePath, contentFileStoragePath } from "@/lib/storage/paths";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
+import { coverStoragePath, contentFileStoragePath, extractStoragePathFromPublicUrl } from "@/lib/storage/paths";
+import { validateUploadedFile, validateCoverImage } from "@/lib/storage/file-validation";
+import { friendlyDeleteError } from "@/lib/supabase/errors";
 import { courseSchema, lessonDetailSchema } from "@/lib/validations/course";
 
 export type ActionResult = { error: string | null; id?: string };
@@ -31,12 +33,13 @@ export async function createCourse(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const data = parsed.data;
+  const slug = await ensureUniqueSlug(supabase, "courses", slugify(data.title));
 
   const { data: course, error } = await supabase
     .from("courses")
     .insert({
       title: data.title,
-      slug: slugify(data.title),
+      slug,
       description: data.description || null,
       instructor: data.instructor || null,
       workload_hours: data.workloadHours ?? null,
@@ -90,8 +93,45 @@ export async function deleteCourse(id: string): Promise<ActionResult> {
   if (guard) return guard;
 
   const supabase = await createClient();
+
+  const { data: modules } = await supabase.from("course_modules").select("id").eq("course_id", id);
+  const moduleIds = (modules ?? []).map((m) => m.id);
+  let lessonIds: string[] = [];
+  if (moduleIds.length > 0) {
+    const { data: lessons } = await supabase.from("course_lessons").select("id").in("module_id", moduleIds);
+    lessonIds = (lessons ?? []).map((l) => l.id);
+    if (lessonIds.length > 0) {
+      const { count } = await supabase
+        .from("lesson_progress")
+        .select("id", { count: "exact", head: true })
+        .in("lesson_id", lessonIds);
+      if (count && count > 0) {
+        return {
+          error:
+            "Este curso já possui progresso registrado por professores. Arquive-o (mude o status) em vez de excluir.",
+        };
+      }
+    }
+  }
+
+  const [{ data: current }, { data: lessonFiles }] = await Promise.all([
+    supabase.from("courses").select("cover_url").eq("id", id).single(),
+    lessonIds.length > 0
+      ? supabase.from("lesson_files").select("storage_path").in("lesson_id", lessonIds)
+      : Promise.resolve({ data: [] as { storage_path: string }[] }),
+  ]);
+
   const { error } = await supabase.from("courses").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const path = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (path) await supabase.storage.from("public").remove([path]);
+  }
+  if (lessonFiles && lessonFiles.length > 0) {
+    await supabase.storage.from("private").remove(lessonFiles.map((f) => f.storage_path));
+  }
+
   revalidatePath(COURSES_PATH);
   return { error: null };
 }
@@ -100,7 +140,12 @@ export async function uploadCourseCover(courseId: string, file: File): Promise<A
   const guard = await guardAdmin();
   if (guard) return guard;
 
+  const validationError = validateCoverImage(file);
+  if (validationError) return { error: validationError };
+
   const supabase = await createClient();
+  const { data: current } = await supabase.from("courses").select("cover_url").eq("id", courseId).single();
+
   const path = coverStoragePath(courseId, file.name);
 
   const { error: uploadError } = await supabase.storage.from("public").upload(path, file, {
@@ -114,6 +159,12 @@ export async function uploadCourseCover(courseId: string, file: File): Promise<A
 
   const { error } = await supabase.from("courses").update({ cover_url: publicUrl }).eq("id", courseId);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const oldPath = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (oldPath) await supabase.storage.from("public").remove([oldPath]);
+  }
+
   revalidatePath(COURSES_PATH);
   return { error: null };
 }
@@ -146,7 +197,11 @@ export async function deleteModule(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { error } = await supabase.from("course_modules").delete().eq("id", id);
-  if (error) return { error: "Não é possível excluir: existem aulas vinculadas a este módulo." };
+  if (error) {
+    return {
+      error: friendlyDeleteError(error, "Não é possível excluir: existem aulas vinculadas a este módulo."),
+    };
+  }
   revalidatePath(COURSES_PATH);
   return { error: null };
 }
@@ -212,6 +267,9 @@ export async function updateLessonDetail(id: string, input: unknown): Promise<Ac
 export async function addLessonFile(lessonId: string, file: File): Promise<ActionResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
+
+  const validationError = validateUploadedFile(file);
+  if (validationError) return { error: validationError };
 
   const supabase = await createClient();
   const path = contentFileStoragePath(lessonId, file.name);

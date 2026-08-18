@@ -22,7 +22,7 @@ export function DashboardShell({
 }) {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
-      <aside className="shrink-0 border-b bg-muted/20 lg:w-64 lg:border-b-0 lg:border-r">
+      <aside className="shrink-0 border-b bg-muted/20 print:hidden lg:w-64 lg:border-b-0 lg:border-r">
         <div className="flex h-16 items-center gap-2 border-b px-4 font-semibold">
           <Link href={homeHref} className="flex items-center gap-2">
             <GraduationCap className="h-5 w-5" />
@@ -44,7 +44,7 @@ export function DashboardShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-end border-b px-4">
+        <header className="flex h-16 items-center justify-end border-b px-4 print:hidden">
           <UserMenu profile={profile} />
         </header>
         <main className="flex-1 p-6">{children}</main>

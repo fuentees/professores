@@ -1,8 +1,13 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Heart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
 import { isRecentlyCreated } from "@/lib/dates";
+import { PageHeader } from "@/components/common/page-header";
+import { EmptyState } from "@/components/common/empty-state";
+import { Button } from "@/components/ui/button";
 
 type FavoriteRow = {
   contents: {
@@ -58,15 +63,17 @@ export default async function FavoritosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Favoritos</h1>
-        <p className="text-muted-foreground">Materiais que você marcou como favoritos.</p>
-      </div>
+      <PageHeader title="Favoritos" description="Materiais que você marcou como favoritos." />
 
       {materials.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          Você ainda não favoritou nenhum material.
-        </div>
+        <EmptyState
+          icon={Heart}
+          title="Nenhum favorito ainda"
+          description="Salve materiais que você deseja encontrar novamente."
+          action={
+            <Button size="sm" nativeButton={false} render={<Link href="/materiais">Explorar materiais</Link>} />
+          }
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {materials.map((material) => (

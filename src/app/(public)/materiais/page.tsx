@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { MaterialFilters, type FilterOption } from "@/components/materials/material-filters";
+import { MaterialFilters, type MaterialFiltersData } from "@/components/materials/material-filters";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
 import { isRecentlyCreated } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/common/page-header";
+import { EmptyState } from "@/components/common/empty-state";
+import { SearchX } from "lucide-react";
 import Link from "next/link";
 
 const PAGE_SIZE = 12;
@@ -43,18 +46,34 @@ export default async function MateriaisPage({
   const nivel = typeof params.nivel === "string" ? params.nivel : "";
   const serie = typeof params.serie === "string" ? params.serie : "";
   const disciplina = typeof params.disciplina === "string" ? params.disciplina : "";
+  const unidade = typeof params.unidade === "string" ? params.unidade : "";
+  const tema = typeof params.tema === "string" ? params.tema : "";
+  const subtema = typeof params.subtema === "string" ? params.subtema : "";
   const tipo = typeof params.tipo === "string" ? params.tipo : "";
+  const habilidade = typeof params.habilidade === "string" ? params.habilidade : "";
   const page = Math.max(1, Number(params.pagina) || 1);
 
   const supabase = await createClient();
 
-  const [{ data: educationLevels }, { data: grades }, { data: subjects }, { data: contentTypes }] =
-    await Promise.all([
-      supabase.from("education_levels").select("id, name").order("order_index"),
-      supabase.from("grades").select("id, name").order("order_index"),
-      supabase.from("subjects").select("id, name").order("order_index"),
-      supabase.from("content_types").select("id, name").order("order_index"),
-    ]);
+  const [
+    { data: educationLevels },
+    { data: grades },
+    { data: subjects },
+    { data: gradeSubjects },
+    { data: curriculumUnits },
+    { data: themes },
+    { data: subthemes },
+    { data: contentTypes },
+  ] = await Promise.all([
+    supabase.from("education_levels").select("id, name").order("order_index"),
+    supabase.from("grades").select("id, name, education_level_id").order("order_index"),
+    supabase.from("subjects").select("id, name").order("order_index"),
+    supabase.from("grade_subjects").select("grade_id, subject_id"),
+    supabase.from("curriculum_units").select("id, name, grade_id, subject_id").order("order_index"),
+    supabase.from("themes").select("id, name, curriculum_unit_id").order("order_index"),
+    supabase.from("subthemes").select("id, name, theme_id").order("order_index"),
+    supabase.from("content_types").select("id, name").order("order_index"),
+  ]);
 
   let gradeIdsForLevel: string[] | null = null;
   if (nivel) {
@@ -80,6 +99,30 @@ export default async function MateriaisPage({
     contentIdsFromSubject = (data ?? []).map((r) => r.content_id);
   }
 
+  let contentIdsFromUnit: string[] | null = null;
+  if (unidade) {
+    const { data } = await supabase
+      .from("content_units")
+      .select("content_id")
+      .eq("curriculum_unit_id", unidade);
+    contentIdsFromUnit = (data ?? []).map((r) => r.content_id);
+  }
+
+  let contentIdsFromTheme: string[] | null = null;
+  if (tema) {
+    const { data } = await supabase.from("content_themes").select("content_id").eq("theme_id", tema);
+    contentIdsFromTheme = (data ?? []).map((r) => r.content_id);
+  }
+
+  let contentIdsFromSubtheme: string[] | null = null;
+  if (subtema) {
+    const { data } = await supabase
+      .from("content_subthemes")
+      .select("content_id")
+      .eq("subtheme_id", subtema);
+    contentIdsFromSubtheme = (data ?? []).map((r) => r.content_id);
+  }
+
   let contentIdsFromType: string[] | null = null;
   if (tipo) {
     const { data } = await supabase
@@ -89,10 +132,25 @@ export default async function MateriaisPage({
     contentIdsFromType = (data ?? []).map((r) => r.content_id);
   }
 
+  let bnccSkill: { code: string; description: string } | null = null;
+  let contentIdsFromBnccSkill: string[] | null = null;
+  if (habilidade) {
+    const [{ data: links }, { data: skill }] = await Promise.all([
+      supabase.from("content_bncc_skills").select("content_id").eq("bncc_skill_id", habilidade),
+      supabase.from("bncc_skills").select("code, description").eq("id", habilidade).maybeSingle(),
+    ]);
+    contentIdsFromBnccSkill = (links ?? []).map((r) => r.content_id);
+    bnccSkill = skill;
+  }
+
   const filteredIds = await intersectContentIds([
     contentIdsFromGrade,
     contentIdsFromSubject,
+    contentIdsFromUnit,
+    contentIdsFromTheme,
+    contentIdsFromSubtheme,
     contentIdsFromType,
+    contentIdsFromBnccSkill,
   ]);
 
   let query = supabase
@@ -103,10 +161,13 @@ export default async function MateriaisPage({
       content_grades(grades(name)),
       content_content_types(content_types(name))`,
       { count: "exact" },
-    )
-    .order("created_at", { ascending: false });
+    );
 
-  if (q) query = query.or(`title.ilike.%${q}%,short_description.ilike.%${q}%`);
+  if (q) {
+    query = query.textSearch("search_vector", q, { type: "websearch", config: "portuguese" });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
   if (filteredIds) query = query.in("id", filteredIds);
 
   const from = (page - 1) * PAGE_SIZE;
@@ -138,38 +199,71 @@ export default async function MateriaisPage({
     if (nivel) p.set("nivel", nivel);
     if (serie) p.set("serie", serie);
     if (disciplina) p.set("disciplina", disciplina);
+    if (unidade) p.set("unidade", unidade);
+    if (tema) p.set("tema", tema);
+    if (subtema) p.set("subtema", subtema);
     if (tipo) p.set("tipo", tipo);
+    if (habilidade) p.set("habilidade", habilidade);
     if (targetPage > 1) p.set("pagina", String(targetPage));
     const qs = p.toString();
     return `/materiais${qs ? `?${qs}` : ""}`;
   };
 
-  const educationLevelOptions: FilterOption[] = (educationLevels ?? []).map((l) => ({
-    id: l.id,
-    name: l.name,
-  }));
-  const gradeOptions: FilterOption[] = (grades ?? []).map((g) => ({ id: g.id, name: g.name }));
-  const subjectOptions: FilterOption[] = (subjects ?? []).map((s) => ({ id: s.id, name: s.name }));
-  const contentTypeOptions: FilterOption[] = (contentTypes ?? []).map((c) => ({ id: c.id, name: c.name }));
+  const buildHrefWithout = (key: string) => {
+    const p = new URLSearchParams();
+    if (q) p.set("q", q);
+    if (nivel) p.set("nivel", nivel);
+    if (serie) p.set("serie", serie);
+    if (disciplina) p.set("disciplina", disciplina);
+    if (unidade) p.set("unidade", unidade);
+    if (tema) p.set("tema", tema);
+    if (subtema) p.set("subtema", subtema);
+    if (tipo) p.set("tipo", tipo);
+    if (habilidade) p.set("habilidade", habilidade);
+    p.delete(key);
+    const qs = p.toString();
+    return `/materiais${qs ? `?${qs}` : ""}`;
+  };
+
+  const filtersData: MaterialFiltersData = {
+    educationLevels: (educationLevels ?? []).map((l) => ({ id: l.id, name: l.name })),
+    grades: (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    subjects: (subjects ?? []).map((s) => ({ id: s.id, name: s.name })),
+    gradeSubjects: (gradeSubjects ?? []).map((gs) => ({ gradeId: gs.grade_id, subjectId: gs.subject_id })),
+    curriculumUnits: (curriculumUnits ?? []).map((u) => ({
+      id: u.id,
+      name: u.name,
+      gradeId: u.grade_id,
+      subjectId: u.subject_id,
+    })),
+    themes: (themes ?? []).map((t) => ({ id: t.id, name: t.name, curriculumUnitId: t.curriculum_unit_id })),
+    subthemes: (subthemes ?? []).map((s) => ({ id: s.id, name: s.name, themeId: s.theme_id })),
+    contentTypes: (contentTypes ?? []).map((c) => ({ id: c.id, name: c.name })),
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Materiais</h1>
-        <p className="text-muted-foreground">{total} materiais encontrados</p>
-      </div>
+      <PageHeader title="Materiais" description={`${total} materiais encontrados`} />
 
-      <MaterialFilters
-        educationLevels={educationLevelOptions}
-        grades={gradeOptions}
-        subjects={subjectOptions}
-        contentTypes={contentTypeOptions}
-      />
+      {bnccSkill && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
+          <span className="text-muted-foreground">Filtrado pela habilidade BNCC</span>
+          <span className="font-mono font-medium">{bnccSkill.code}</span>
+          <span className="text-muted-foreground">— {bnccSkill.description}</span>
+          <Link href={buildHrefWithout("habilidade")} className="ml-auto text-xs underline">
+            Remover filtro
+          </Link>
+        </div>
+      )}
+
+      <MaterialFilters data={filtersData} />
 
       {materials.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          Nenhum material encontrado com esses filtros.
-        </div>
+        <EmptyState
+          icon={SearchX}
+          title="Nenhum material encontrado"
+          description="Tente outro termo de busca ou remova alguns filtros."
+        />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {materials.map((material) => (

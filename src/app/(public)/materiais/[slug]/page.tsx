@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DownloadButton } from "@/components/materials/download-button";
 import { FavoriteButton } from "@/components/materials/favorite-button";
+import { MaterialCard } from "@/components/materials/material-card";
+import { SectionHeader } from "@/components/common/section-header";
+import { fetchRelatedContentCards } from "@/lib/queries/content-cards";
+import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
 
 type ContentDetail = {
   id: string;
@@ -22,11 +26,12 @@ type ContentDetail = {
   allow_download: boolean;
   has_answer_key: boolean;
   published_at: string | null;
-  content_subjects: { subjects: { name: string } | null }[];
-  content_grades: { grades: { name: string } | null }[];
+  content_subjects: { subjects: { id: string; name: string } | null }[];
+  content_grades: { grades: { id: string; name: string } | null }[];
   content_themes: { themes: { name: string } | null }[];
   content_content_types: { content_types: { name: string } | null }[];
   content_files: { id: string; name: string; allow_download: boolean }[];
+  content_bncc_skills: { bncc_skills: { id: string; code: string; description: string } | null }[];
 };
 
 const ACCESS_LABELS: Record<string, string> = {
@@ -48,11 +53,12 @@ export default async function MaterialDetailPage({
     .select(
       `id, title, subtitle, short_description, body, cover_url, author, access_type,
       allow_download, has_answer_key, published_at,
-      content_subjects(subjects(name)),
-      content_grades(grades(name)),
+      content_subjects(subjects(id, name)),
+      content_grades(grades(id, name)),
       content_themes(themes(name)),
       content_content_types(content_types(name)),
-      content_files(id, name, allow_download)`,
+      content_files(id, name, allow_download),
+      content_bncc_skills(bncc_skills(id, code, description))`,
     )
     .eq("slug", slug)
     .maybeSingle()
@@ -73,28 +79,19 @@ export default async function MaterialDetailPage({
     initialFavorited = Boolean(favorite);
   }
 
-  let canSeeFiles = Boolean(profile);
-  if (profile && content.access_type === "subscriber_only") {
-    const [{ data: activeSubscription }, { data: grant }] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("teacher_id", profile.id)
-        .eq("status", "active")
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("access_grants")
-        .select("id")
-        .eq("teacher_id", profile.id)
-        .eq("content_id", content.id)
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-        .limit(1)
-        .maybeSingle(),
-    ]);
-    canSeeFiles = Boolean(activeSubscription || grant);
-  }
+  const canSeeFiles = await canAccessResource(
+    supabase,
+    profile,
+    { accessType: content.access_type as ResourceAccessType },
+    { contentId: content.id },
+  );
+
+  const relatedMaterials = await fetchRelatedContentCards(supabase, {
+    excludeContentId: content.id,
+    subjectIds: content.content_subjects.map((s) => s.subjects?.id).filter((id): id is string => Boolean(id)),
+    gradeIds: content.content_grades.map((g) => g.grades?.id).filter((id): id is string => Boolean(id)),
+    limit: 4,
+  });
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
@@ -134,6 +131,25 @@ export default async function MaterialDetailPage({
         </div>
       )}
 
+      {content.content_bncc_skills.length > 0 && (
+        <div className="space-y-2 rounded-lg border p-4">
+          <p className="text-sm font-medium">Habilidades da BNCC</p>
+          <div className="flex flex-col gap-2">
+            {content.content_bncc_skills.map(
+              (s) =>
+                s.bncc_skills && (
+                  <div key={s.bncc_skills.id} className="flex flex-wrap items-baseline gap-2 text-sm">
+                    <Badge variant="outline" className="shrink-0 font-mono">
+                      {s.bncc_skills.code}
+                    </Badge>
+                    <span className="text-muted-foreground">{s.bncc_skills.description}</span>
+                  </div>
+                ),
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
         {profile && <FavoriteButton contentId={content.id} initialFavorited={initialFavorited} />}
 
@@ -167,6 +183,17 @@ export default async function MaterialDetailPage({
         Este material é disponibilizado para uso pedagógico. A reprodução para fins comerciais não é
         permitida.
       </p>
+
+      {relatedMaterials.length > 0 && (
+        <div className="space-y-4 pt-4">
+          <SectionHeader title="Materiais relacionados" />
+          <div className="grid gap-6 sm:grid-cols-2">
+            {relatedMaterials.map((material) => (
+              <MaterialCard key={material.slug} material={material} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

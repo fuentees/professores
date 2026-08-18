@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
+import { friendlyDeleteError } from "@/lib/supabase/errors";
 import { forumCategorySchema } from "@/lib/validations/forum";
 
 export type ActionResult = { error: string | null };
@@ -29,9 +30,10 @@ export async function createForumCategory(input: unknown): Promise<ActionResult>
   if (guard) return guard;
 
   const supabase = await createClient();
+  const slug = await ensureUniqueSlug(supabase, "forum_categories", slugify(parsed.data.name));
   const { error } = await supabase.from("forum_categories").insert({
     name: parsed.data.name,
-    slug: slugify(parsed.data.name),
+    slug,
     description: parsed.data.description || null,
     order_index: parsed.data.orderIndex,
     status: parsed.data.status,
@@ -69,7 +71,11 @@ export async function deleteForumCategory(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { error } = await supabase.from("forum_categories").delete().eq("id", id);
-  if (error) return { error: "Não é possível excluir: existem tópicos vinculados a esta categoria." };
+  if (error) {
+    return {
+      error: friendlyDeleteError(error, "Não é possível excluir: existem tópicos vinculados a esta categoria."),
+    };
+  }
   revalidatePath(FORUM_PATH);
   return { error: null };
 }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteUrl } from "@/lib/site";
+import { isSafeRedirectPath } from "@/lib/safe-redirect";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -76,8 +77,7 @@ export async function login(
   }
 
   const redirectTo = formData.get("redirect");
-  const destino =
-    typeof redirectTo === "string" && redirectTo.startsWith("/") ? redirectTo : "/painel";
+  const destino = typeof redirectTo === "string" && isSafeRedirectPath(redirectTo) ? redirectTo : "/painel";
 
   redirect(destino);
 }

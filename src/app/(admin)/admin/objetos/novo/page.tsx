@@ -8,6 +8,8 @@ const DEFAULT_VALUES: LearningObjectInput = {
   externalUrl: "",
   accessType: "teacher_only",
   status: "draft",
+  activityType: null,
+  config: null,
 };
 
 export default function NovoObjetoPage() {

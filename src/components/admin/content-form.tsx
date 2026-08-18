@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { MultiCheckList, type MultiCheckOption } from "@/components/admin/multi-check-list";
 import { TagInput } from "@/components/admin/tag-input";
+import { DIFFICULTY_LABELS, CONTENT_ACCESS_TYPE_LABELS, CONTENT_STATUS_LABELS } from "@/lib/labels";
 
 export type ContentFormOptions = {
   grades: MultiCheckOption[];
@@ -105,7 +106,9 @@ export function ContentForm({
                     onValueChange={(value) => form.setValue("difficulty", (value ?? "") as never)}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione">
+                        {(value: string) => (value ? DIFFICULTY_LABELS[value] : "Selecione")}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="easy">Fácil</SelectItem>
@@ -197,7 +200,7 @@ export function ContentForm({
                   onValueChange={(value) => form.setValue("accessType", (value ?? "teacher_only") as never)}
                 >
                   <SelectTrigger className="w-full sm:w-72">
-                    <SelectValue />
+                    <SelectValue>{(value: string) => CONTENT_ACCESS_TYPE_LABELS[value]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">Público</SelectItem>
@@ -242,7 +245,7 @@ export function ContentForm({
                   onValueChange={(value) => form.setValue("status", (value ?? "draft") as never)}
                 >
                   <SelectTrigger className="w-full sm:w-72">
-                    <SelectValue />
+                    <SelectValue>{(value: string) => CONTENT_STATUS_LABELS[value]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="draft">Rascunho</SelectItem>

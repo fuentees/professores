@@ -3,27 +3,34 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
-import { coverStoragePath, contentFileStoragePath } from "@/lib/storage/paths";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
+import { coverStoragePath, contentFileStoragePath, extractStoragePathFromPublicUrl } from "@/lib/storage/paths";
+import { validateUploadedFile, validateCoverImage } from "@/lib/storage/file-validation";
 import { contentSchema, type ContentInput } from "@/lib/validations/content";
 
 export type ActionResult = { error: string | null; id?: string };
 
 const LIST_PATH = "/admin/materiais";
 
-async function ensureUniqueSlug(base: string, ignoreId?: string): Promise<string> {
-  const supabase = await createClient();
-  let slug = base;
-  let suffix = 2;
-
-  for (;;) {
-    let query = supabase.from("contents").select("id").eq("slug", slug).limit(1);
-    if (ignoreId) query = query.neq("id", ignoreId);
-    const { data } = await query;
-    if (!data || data.length === 0) return slug;
-    slug = `${base}-${suffix}`;
-    suffix += 1;
+/**
+ * `status = 'scheduled'` is a dead end at the DB level: RLS
+ * (`contents_public_read_published`) requires `status = 'published'`
+ * literally, ANDed with the `publish_at` future-dating check — a row left
+ * at `scheduled` never becomes visible on its own, no matter how far in the
+ * past `publish_at` is, because nothing ever flips it to `published` (no
+ * cron/edge function exists). The form still offers "Agendado" as an admin
+ * intent, but writes translate it to the mechanism that actually works:
+ * `status = 'published'` with a future `publish_at`.
+ */
+function resolveScheduledStatus(
+  status: ContentInput["status"],
+  publishAt: string | undefined,
+): { error: string } | { status: ContentInput["status"]; publishAt: string | null; isFuture: boolean } {
+  if (status === "scheduled") {
+    if (!publishAt) return { error: "Informe a data de publicação para agendar este material." };
+    return { status: "published", publishAt, isFuture: new Date(publishAt) > new Date() };
   }
+  return { status, publishAt: publishAt || null, isFuture: false };
 }
 
 async function findOrCreateTagIds(names: string[]): Promise<string[]> {
@@ -100,7 +107,11 @@ export async function createContent(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const data = parsed.data;
-  const slug = await ensureUniqueSlug(slugify(data.title));
+
+  const resolved = resolveScheduledStatus(data.status, data.publishAt);
+  if ("error" in resolved) return { error: resolved.error };
+
+  const slug = await ensureUniqueSlug(supabase, "contents", slugify(data.title));
 
   const { data: content, error } = await supabase
     .from("contents")
@@ -113,15 +124,15 @@ export async function createContent(input: unknown): Promise<ActionResult> {
       author: data.author || null,
       difficulty: data.difficulty || null,
       access_type: data.accessType,
-      status: data.status,
+      status: resolved.status,
       allow_view: data.allowView,
       allow_download: data.allowDownload,
       allow_print: data.allowPrint,
       allow_comments: data.allowComments,
       has_answer_key: data.hasAnswerKey,
       is_featured: data.isFeatured,
-      publish_at: data.publishAt || null,
-      published_at: data.status === "published" ? new Date().toISOString() : null,
+      publish_at: resolved.publishAt,
+      published_at: resolved.status === "published" && !resolved.isFuture ? new Date().toISOString() : null,
       created_by: admin.id,
     })
     .select("id")
@@ -148,10 +159,14 @@ export async function updateContent(id: string, input: unknown): Promise<ActionR
   const supabase = await createClient();
   const data = parsed.data;
 
+  const resolved = resolveScheduledStatus(data.status, data.publishAt);
+  if ("error" in resolved) return { error: resolved.error };
+
   // O slug é definido na criação e nunca é recalculado a partir do título,
   // para não quebrar links já compartilhados/indexados.
   const { data: current } = await supabase.from("contents").select("status").eq("id", id).single();
-  const becamePublished = data.status === "published" && current?.status !== "published";
+  const becamePublished =
+    resolved.status === "published" && !resolved.isFuture && current?.status !== "published";
 
   const { error } = await supabase
     .from("contents")
@@ -163,14 +178,14 @@ export async function updateContent(id: string, input: unknown): Promise<ActionR
       author: data.author || null,
       difficulty: data.difficulty || null,
       access_type: data.accessType,
-      status: data.status,
+      status: resolved.status,
       allow_view: data.allowView,
       allow_download: data.allowDownload,
       allow_print: data.allowPrint,
       allow_comments: data.allowComments,
       has_answer_key: data.hasAnswerKey,
       is_featured: data.isFeatured,
-      publish_at: data.publishAt || null,
+      publish_at: resolved.publishAt,
       ...(becamePublished ? { published_at: new Date().toISOString() } : {}),
       archived_at: data.status === "archived" ? new Date().toISOString() : null,
     })
@@ -193,6 +208,12 @@ export async function setContentStatus(
   } catch (e) {
     if (e instanceof NotAdminError) return { error: e.message };
     throw e;
+  }
+
+  if (status === "scheduled") {
+    return {
+      error: "Pra agendar, defina a data de publicação na tela de edição completa do material.",
+    };
   }
 
   const supabase = await createClient();
@@ -233,8 +254,22 @@ export async function deleteContent(id: string): Promise<ActionResult> {
     };
   }
 
+  const [{ data: current }, { data: files }] = await Promise.all([
+    supabase.from("contents").select("cover_url").eq("id", id).single(),
+    supabase.from("content_files").select("storage_path").eq("content_id", id),
+  ]);
+
   const { error } = await supabase.from("contents").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const path = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (path) await supabase.storage.from("public").remove([path]);
+  }
+  if (files && files.length > 0) {
+    await supabase.storage.from("private").remove(files.map((f) => f.storage_path));
+  }
+
   revalidatePath(LIST_PATH);
   return { error: null };
 }
@@ -247,7 +282,12 @@ export async function uploadCoverImage(contentId: string, file: File): Promise<A
     throw e;
   }
 
+  const validationError = validateCoverImage(file);
+  if (validationError) return { error: validationError };
+
   const supabase = await createClient();
+  const { data: current } = await supabase.from("contents").select("cover_url").eq("id", contentId).single();
+
   const path = coverStoragePath(contentId, file.name);
 
   const { error: uploadError } = await supabase.storage.from("public").upload(path, file, {
@@ -262,29 +302,14 @@ export async function uploadCoverImage(contentId: string, file: File): Promise<A
   const { error } = await supabase.from("contents").update({ cover_url: publicUrl }).eq("id", contentId);
   if (error) return { error: error.message };
 
+  if (current?.cover_url) {
+    const oldPath = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (oldPath) await supabase.storage.from("public").remove([oldPath]);
+  }
+
   revalidatePath(LIST_PATH);
   return { error: null };
 }
-
-const ALLOWED_EXTENSIONS = new Set([
-  "pdf",
-  "doc",
-  "docx",
-  "ppt",
-  "pptx",
-  "xls",
-  "xlsx",
-  "csv",
-  "jpg",
-  "jpeg",
-  "png",
-  "webp",
-  "gif",
-  "mp3",
-  "mp4",
-  "zip",
-]);
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function addContentFile(contentId: string, file: File): Promise<ActionResult> {
   try {
@@ -294,13 +319,8 @@ export async function addContentFile(contentId: string, file: File): Promise<Act
     throw e;
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  if (!ALLOWED_EXTENSIONS.has(extension)) {
-    return { error: `Formato de arquivo não permitido: .${extension}` };
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return { error: "Arquivo maior que o limite de 50MB." };
-  }
+  const validationError = validateUploadedFile(file);
+  if (validationError) return { error: validationError };
 
   const supabase = await createClient();
   const path = contentFileStoragePath(contentId, file.name);
@@ -310,6 +330,7 @@ export async function addContentFile(contentId: string, file: File): Promise<Act
   });
   if (uploadError) return { error: uploadError.message };
 
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   const { error } = await supabase.from("content_files").insert({
     content_id: contentId,
     name: file.name,

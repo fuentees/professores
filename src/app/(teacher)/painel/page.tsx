@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
+import { SectionHeader } from "@/components/common/section-header";
+import { fetchContentCards } from "@/lib/queries/content-cards";
 import { isRecentlyCreated } from "@/lib/dates";
 
 type FeaturedRow = {
@@ -17,38 +19,63 @@ type FeaturedRow = {
   content_content_types: { content_types: { name: string } | null }[];
 };
 
-export default async function PainelPage() {
-  const profile = await getCurrentProfile();
-  const supabase = await createClient();
+type LessonProgressRow = {
+  completed_at: string | null;
+  course_lessons: { course_modules: { course_id: string } | null } | null;
+};
 
-  const [{ count: favoritesCount }, { count: downloadsCount }, { data: featured }] = await Promise.all([
-    profile
-      ? supabase
-          .from("favorites")
-          .select("*", { count: "exact", head: true })
-          .eq("teacher_id", profile.id)
-      : Promise.resolve({ count: 0 }),
-    profile
-      ? supabase
-          .from("downloads")
-          .select("*", { count: "exact", head: true })
-          .eq("teacher_id", profile.id)
-      : Promise.resolve({ count: 0 }),
-    supabase
-      .from("contents")
-      .select(
-        `slug, title, short_description, cover_url, access_type, has_answer_key, created_at,
-        content_subjects(subjects(name)),
-        content_grades(grades(name)),
-        content_content_types(content_types(name))`,
-      )
-      .eq("is_featured", true)
-      .order("created_at", { ascending: false })
-      .limit(3)
-      .returns<FeaturedRow[]>(),
-  ]);
+/** Recomendação simples por regra: pega a disciplina mais favoritada pelo
+ * professor e sugere materiais recentes dela que ele ainda não favoritou. */
+async function fetchRecommendations(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teacherId: string,
+): Promise<MaterialCardData[]> {
+  const { data: favoriteSubjects } = await supabase
+    .from("favorites")
+    .select("contents(content_subjects(subject_id))")
+    .eq("teacher_id", teacherId)
+    .limit(20)
+    .returns<{ contents: { content_subjects: { subject_id: string }[] } | null }[]>();
 
-  const materials: MaterialCardData[] = (featured ?? []).map((c) => ({
+  const subjectCounts = new Map<string, number>();
+  for (const fav of favoriteSubjects ?? []) {
+    for (const cs of fav.contents?.content_subjects ?? []) {
+      subjectCounts.set(cs.subject_id, (subjectCounts.get(cs.subject_id) ?? 0) + 1);
+    }
+  }
+  const topSubjectId = [...subjectCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (!topSubjectId) return [];
+
+  const { data: favoriteContentIds } = await supabase
+    .from("favorites")
+    .select("content_id")
+    .eq("teacher_id", teacherId);
+  const excludeIds = new Set((favoriteContentIds ?? []).map((f) => f.content_id));
+
+  const { data: subjectContentIds } = await supabase
+    .from("content_subjects")
+    .select("content_id")
+    .eq("subject_id", topSubjectId);
+  const candidateIds = (subjectContentIds ?? [])
+    .map((r) => r.content_id)
+    .filter((id) => !excludeIds.has(id));
+  if (candidateIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from("contents")
+    .select(
+      `slug, title, short_description, cover_url, access_type, has_answer_key, created_at,
+      content_subjects(subjects(name)),
+      content_grades(grades(name)),
+      content_content_types(content_types(name))`,
+    )
+    .eq("status", "published")
+    .in("id", candidateIds)
+    .order("created_at", { ascending: false })
+    .limit(3)
+    .returns<FeaturedRow[]>();
+
+  return (data ?? []).map((c) => ({
     slug: c.slug,
     title: c.title,
     short_description: c.short_description,
@@ -62,6 +89,48 @@ export default async function PainelPage() {
       .map((t) => t.content_types?.name)
       .filter((n): n is string => Boolean(n)),
   }));
+}
+
+export default async function PainelPage() {
+  const profile = await getCurrentProfile();
+  const supabase = await createClient();
+
+  const [
+    { count: favoritesCount },
+    { count: downloadsCount },
+    { count: examsCount },
+    { data: lessonProgress },
+    featured,
+    recommendations,
+  ] = await Promise.all([
+    profile
+      ? supabase.from("favorites").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
+      : Promise.resolve({ count: 0 }),
+    profile
+      ? supabase.from("downloads").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
+      : Promise.resolve({ count: 0 }),
+    profile
+      ? supabase.from("generated_exams").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
+      : Promise.resolve({ count: 0 }),
+    profile
+      ? supabase
+          .from("lesson_progress")
+          .select("completed_at, course_lessons(course_modules(course_id))")
+          .eq("teacher_id", profile.id)
+          .returns<LessonProgressRow[]>()
+      : Promise.resolve({ data: [] as LessonProgressRow[] }),
+    fetchContentCards(supabase, { featuredOnly: true, limit: 3 }),
+    profile ? fetchRecommendations(supabase, profile.id) : Promise.resolve([]),
+  ]);
+
+  const coursesInProgress = new Set(
+    (lessonProgress ?? [])
+      .filter((p) => !p.completed_at)
+      .map((p) => p.course_lessons?.course_modules?.course_id)
+      .filter((id): id is string => Boolean(id)),
+  ).size;
+
+  const materials = featured;
 
   return (
     <div className="space-y-6">
@@ -75,9 +144,9 @@ export default async function PainelPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Materiais favoritados", value: favoritesCount ?? 0 },
-          { label: "Cursos em andamento", value: 0 },
+          { label: "Cursos em andamento", value: coursesInProgress },
           { label: "Downloads recentes", value: downloadsCount ?? 0 },
-          { label: "Notificações", value: 0 },
+          { label: "Provas geradas", value: examsCount ?? 0 },
         ].map((item) => (
           <Card key={item.label}>
             <CardHeader>
@@ -89,6 +158,20 @@ export default async function PainelPage() {
           </Card>
         ))}
       </div>
+
+      {recommendations.length > 0 && (
+        <div className="space-y-4">
+          <SectionHeader
+            title="Sugerido para você"
+            description="Com base nos materiais que você favoritou."
+          />
+          <div className="grid gap-4 sm:grid-cols-3">
+            {recommendations.map((material) => (
+              <MaterialCard key={material.slug} material={material} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

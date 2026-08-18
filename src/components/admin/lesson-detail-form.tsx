@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 
+const LESSON_STATUS_LABELS: Record<string, string> = { active: "Ativa", inactive: "Inativa" };
+
 export function LessonDetailForm({
   lessonId,
   defaultValues,
@@ -69,7 +71,7 @@ export function LessonDetailForm({
                 onValueChange={(value) => form.setValue("status", value ?? "active")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value: string) => LESSON_STATUS_LABELS[value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Ativa</SelectItem>

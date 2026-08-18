@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
+import { requireActiveProfile } from "@/lib/auth/require-active-profile";
+import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
 
 export type ActionResult = { error: string | null; url?: string };
 
@@ -21,11 +23,6 @@ export async function recordView(contentId: string): Promise<void> {
 }
 
 export async function getDownloadUrl(contentFileId: string): Promise<ActionResult> {
-  const profile = await getCurrentProfile();
-  if (!profile) {
-    return { error: "Faça login para baixar este material." };
-  }
-
   const admin = createAdminClient();
 
   const { data: file } = await admin
@@ -48,29 +45,25 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
   if (!content.allow_download || !file.allow_download) {
     return { error: "O download deste material não é permitido." };
   }
-  if (content.access_type === "subscriber_only") {
-    const [{ data: activeSubscription }, { data: grant }] = await Promise.all([
-      admin
-        .from("subscriptions")
-        .select("id")
-        .eq("teacher_id", profile.id)
-        .eq("status", "active")
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-        .limit(1)
-        .maybeSingle(),
-      admin
-        .from("access_grants")
-        .select("id")
-        .eq("teacher_id", profile.id)
-        .eq("content_id", file.content_id)
-        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-        .limit(1)
-        .maybeSingle(),
-    ]);
 
-    if (!activeSubscription && !grant) {
-      return { error: "Este conteúdo é exclusivo para assinantes de um plano pago." };
-    }
+  const profile = await getCurrentProfile();
+  if (profile && profile.status !== "active") {
+    return { error: "Sua conta está bloqueada." };
+  }
+
+  const entitled = await canAccessResource(
+    admin,
+    profile,
+    { accessType: content.access_type as ResourceAccessType },
+    { contentId: file.content_id },
+  );
+  if (!entitled) {
+    return {
+      error:
+        content.access_type === "subscriber_only"
+          ? "Este conteúdo é exclusivo para assinantes de um plano pago."
+          : "Faça login para baixar este material.",
+    };
   }
 
   const { data: signed, error } = await admin.storage
@@ -80,7 +73,7 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
   if (error || !signed) return { error: "Não foi possível gerar o link de download." };
 
   await admin.from("downloads").insert({
-    teacher_id: profile.id,
+    teacher_id: profile?.id ?? null,
     content_id: file.content_id,
     content_file_id: file.id,
   });
@@ -89,7 +82,7 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
 }
 
 export async function toggleFavorite(contentId: string): Promise<ActionResult> {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para favoritar." };
 
   const supabase = await createClient();

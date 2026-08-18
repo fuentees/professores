@@ -53,7 +53,9 @@ export function CurriculumUnitsManager({
               onValueChange={(value) => form.setValue("gradeId", value ?? "")}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione a série" />
+                <SelectValue placeholder="Selecione a série">
+                  {(value: string) => (value ? gradeName(value) : "Selecione a série")}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {grades.map((g) => (
@@ -71,7 +73,9 @@ export function CurriculumUnitsManager({
               onValueChange={(value) => form.setValue("subjectId", value ?? "")}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione a disciplina" />
+                <SelectValue placeholder="Selecione a disciplina">
+                  {(value: string) => (value ? subjectName(value) : "Selecione a disciplina")}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((s) => (

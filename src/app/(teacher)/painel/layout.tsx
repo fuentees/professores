@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import {
-  Bell,
   BookMarked,
   BookOpen,
   Download,
@@ -10,7 +9,9 @@ import {
   History,
   Home,
   LayoutGrid,
+  Library,
   MessageSquare,
+  SquareStack,
   User,
   Wallet,
 } from "lucide-react";
@@ -24,11 +25,12 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/objetos", label: "Objetos de aprendizagem", icon: LayoutGrid },
   { href: "/bncc", label: "BNCC", icon: BookMarked },
+  { href: "/painel/banco-de-questoes", label: "Banco de questões", icon: Library },
+  { href: "/painel/gerador", label: "Gerador de provas", icon: SquareStack },
   { href: "/painel/favoritos", label: "Favoritos", icon: Heart },
   { href: "/painel/historico", label: "Histórico", icon: History },
   { href: "/painel/downloads", label: "Downloads", icon: Download },
   { href: "/forum", label: "Fórum", icon: MessageSquare },
-  { href: "/painel/notificacoes", label: "Notificações", icon: Bell },
   { href: "/painel/assinatura", label: "Minha assinatura", icon: Wallet },
   { href: "/painel/perfil", label: "Perfil", icon: User },
 ];

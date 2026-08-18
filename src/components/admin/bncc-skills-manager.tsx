@@ -170,7 +170,9 @@ export function BnccSkillsManager({
                     onValueChange={(value) => form.setValue("componentId", value ?? "")}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione">
+                        {(value: string) => (value ? componentName(value) : "Selecione")}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {components.map((c) => (
@@ -188,7 +190,9 @@ export function BnccSkillsManager({
                     onValueChange={(value) => form.setValue("gradeId", value ?? "")}
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione">
+                        {(value: string) => (value ? gradeName(value) : "Selecione")}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {grades.map((g) => (

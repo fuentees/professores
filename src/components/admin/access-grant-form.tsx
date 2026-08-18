@@ -41,7 +41,9 @@ export function AccessGrantForm({
         <Label>Material</Label>
         <Select value={contentId} onValueChange={(value) => setContentId(value ?? "")}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Selecione o material" />
+            <SelectValue placeholder="Selecione o material">
+              {(value: string) => contents.find((c) => c.id === value)?.title ?? "Selecione o material"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {contents.map((content) => (

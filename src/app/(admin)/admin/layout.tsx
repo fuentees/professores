@@ -13,6 +13,7 @@ import {
   Newspaper,
   Settings,
   ShieldCheck,
+  SquareStack,
   Tags,
   Ticket,
   Upload,
@@ -25,6 +26,7 @@ import { DashboardShell, type DashboardNavItem } from "@/components/layout/dashb
 const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/admin", label: "Visão geral", icon: Home },
   { href: "/admin/materiais", label: "Materiais", icon: BookOpen },
+  { href: "/admin/questoes", label: "Banco de questões", icon: SquareStack },
   { href: "/admin/disciplinas", label: "Disciplinas", icon: Tags },
   { href: "/admin/niveis-series", label: "Níveis e séries", icon: ListTree },
   { href: "/admin/unidades-temas", label: "Unidades e temas", icon: ListTree },
@@ -50,7 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/entrar?redirect=/admin");
   }
 
-  if (profile.role !== "admin") {
+  if (profile.role !== "admin" || profile.status !== "active") {
     redirect("/");
   }
 

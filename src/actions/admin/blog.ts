@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
-import { coverStoragePath } from "@/lib/storage/paths";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
+import { coverStoragePath, extractStoragePathFromPublicUrl } from "@/lib/storage/paths";
+import { validateCoverImage } from "@/lib/storage/file-validation";
 import { blogPostSchema } from "@/lib/validations/blog";
 
 export type ActionResult = { error: string | null; id?: string };
@@ -28,9 +29,8 @@ export async function createBlogCategory(values: { name: string }): Promise<Acti
   if (guard) return guard;
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("blog_categories")
-    .insert({ name: values.name, slug: slugify(values.name) });
+  const slug = await ensureUniqueSlug(supabase, "blog_categories", slugify(values.name));
+  const { error } = await supabase.from("blog_categories").insert({ name: values.name, slug });
   if (error) return { error: error.message };
   revalidatePath(BLOG_PATH);
   return { error: null };
@@ -57,12 +57,13 @@ export async function createBlogPost(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const data = parsed.data;
+  const slug = await ensureUniqueSlug(supabase, "blog_posts", slugify(data.title));
 
   const { data: post, error } = await supabase
     .from("blog_posts")
     .insert({
       title: data.title,
-      slug: slugify(data.title),
+      slug,
       excerpt: data.excerpt || null,
       body: data.body || null,
       author: data.author || null,
@@ -116,8 +117,16 @@ export async function deleteBlogPost(id: string): Promise<ActionResult> {
   if (guard) return guard;
 
   const supabase = await createClient();
+  const { data: current } = await supabase.from("blog_posts").select("cover_url").eq("id", id).single();
+
   const { error } = await supabase.from("blog_posts").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const path = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (path) await supabase.storage.from("public").remove([path]);
+  }
+
   revalidatePath(BLOG_PATH);
   return { error: null };
 }
@@ -126,7 +135,12 @@ export async function uploadBlogPostCover(id: string, file: File): Promise<Actio
   const guard = await guardAdmin();
   if (guard) return guard;
 
+  const validationError = validateCoverImage(file);
+  if (validationError) return { error: validationError };
+
   const supabase = await createClient();
+  const { data: current } = await supabase.from("blog_posts").select("cover_url").eq("id", id).single();
+
   const path = coverStoragePath(id, file.name);
 
   const { error: uploadError } = await supabase.storage.from("public").upload(path, file, {
@@ -140,6 +154,12 @@ export async function uploadBlogPostCover(id: string, file: File): Promise<Actio
 
   const { error } = await supabase.from("blog_posts").update({ cover_url: publicUrl }).eq("id", id);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const oldPath = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (oldPath) await supabase.storage.from("public").remove([oldPath]);
+  }
+
   revalidatePath(BLOG_PATH);
   return { error: null };
 }

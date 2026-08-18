@@ -40,7 +40,9 @@ export function ManualSubscriptionForm({
         <Label>Plano</Label>
         <Select value={planId} onValueChange={(value) => setPlanId(value ?? "")}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Selecione o plano" />
+            <SelectValue placeholder="Selecione o plano">
+              {(value: string) => plans.find((p) => p.id === value)?.name ?? "Selecione o plano"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {plans.map((plan) => (

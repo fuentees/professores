@@ -42,7 +42,9 @@ export function GradesManager({
             onValueChange={(value) => form.setValue("educationLevelId", value ?? "")}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione um nível" />
+              <SelectValue placeholder="Selecione um nível">
+                {(value: string) => (value ? levelName(value) : "Selecione um nível")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {educationLevels.map((level) => (

@@ -9,8 +9,31 @@ export type ActiveStatus = "active" | "inactive";
 export type ContentStatus = "draft" | "scheduled" | "published" | "hidden" | "archived";
 export type ContentAccessType = "public" | "free_signup" | "teacher_only" | "subscriber_only";
 export type ContentDifficulty = "easy" | "medium" | "hard";
+export type QuestionType =
+  | "multiple_choice"
+  | "essay"
+  | "discursive"
+  | "true_false"
+  | "matching"
+  | "fill_blank"
+  | "ordering"
+  | "argumentative"
+  | "image_based"
+  | "mixed";
+export type BloomTaxonomyLevel = "lembrar" | "entender" | "aplicar" | "analisar" | "avaliar" | "criar";
+export type RubricLevel = "full" | "partial" | "none";
+export type QuestionImportStatus = "uploaded" | "processing" | "needs_review" | "approved" | "failed" | "rejected";
 export type BillingPeriod = "free" | "monthly" | "yearly";
 export type SubscriptionStatus = "active" | "expired" | "canceled";
+export type LearningActivityTypeDb =
+  | "quiz"
+  | "true_false"
+  | "matching"
+  | "memory"
+  | "fill_blank"
+  | "ordering"
+  | "flashcards"
+  | "simulation";
 
 type CatalogRow = {
   id: string;
@@ -318,6 +341,7 @@ export type Database = {
           price: number;
           billing_period: BillingPeriod;
           download_limit: number | null;
+          exam_generation_monthly_limit: number | null;
           features: string[];
           status: ActiveStatus;
           order_index: number;
@@ -332,6 +356,7 @@ export type Database = {
           price?: number;
           billing_period?: BillingPeriod;
           download_limit?: number | null;
+          exam_generation_monthly_limit?: number | null;
           features?: string[];
           status?: ActiveStatus;
           order_index?: number;
@@ -395,6 +420,306 @@ export type Database = {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["access_grants"]["Insert"]>;
+        Relationships: [];
+      };
+
+      questions: {
+        Row: {
+          id: string;
+          statement: string;
+          question_type: QuestionType;
+          difficulty: ContentDifficulty;
+          theme_id: string | null;
+          subtheme_id: string | null;
+          answer_key: string | null;
+          status: ActiveStatus;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+          code: string | null;
+          subject_id: string | null;
+          grade_id: string | null;
+          knowledge_objects: string[] | null;
+          academic_period_id: string | null;
+          book_name: string | null;
+          book_unit: string | null;
+          bloom_primary_level: BloomTaxonomyLevel | null;
+          bloom_secondary_level: BloomTaxonomyLevel | null;
+          bloom_justification: string | null;
+          pedagogical_note: string | null;
+          publication_status: ContentStatus;
+          original_file_path: string | null;
+          import_id: string | null;
+          access_type: ContentAccessType;
+        };
+        Insert: {
+          id?: string;
+          statement: string;
+          question_type?: QuestionType;
+          difficulty?: ContentDifficulty;
+          theme_id?: string | null;
+          subtheme_id?: string | null;
+          answer_key?: string | null;
+          status?: ActiveStatus;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          code?: string | null;
+          subject_id?: string | null;
+          grade_id?: string | null;
+          knowledge_objects?: string[] | null;
+          academic_period_id?: string | null;
+          book_name?: string | null;
+          book_unit?: string | null;
+          bloom_primary_level?: BloomTaxonomyLevel | null;
+          bloom_secondary_level?: BloomTaxonomyLevel | null;
+          bloom_justification?: string | null;
+          pedagogical_note?: string | null;
+          publication_status?: ContentStatus;
+          original_file_path?: string | null;
+          import_id?: string | null;
+          access_type?: ContentAccessType;
+        };
+        Update: Partial<Database["public"]["Tables"]["questions"]["Insert"]>;
+        Relationships: [];
+      };
+
+      academic_periods: {
+        Row: CatalogRow;
+        Insert: CatalogInsert;
+        Update: CatalogUpdate;
+        Relationships: [];
+      };
+
+      question_imports: {
+        Row: {
+          id: string;
+          file_name: string;
+          file_hash: string;
+          storage_path: string;
+          status: QuestionImportStatus;
+          imported_by: string | null;
+          question_id: string | null;
+          extracted_code: string | null;
+          error_message: string | null;
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          file_name: string;
+          file_hash: string;
+          storage_path: string;
+          status?: QuestionImportStatus;
+          imported_by?: string | null;
+          question_id?: string | null;
+          extracted_code?: string | null;
+          error_message?: string | null;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_imports"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_import_warnings: {
+        Row: {
+          id: string;
+          import_id: string;
+          severity: "warning" | "error";
+          field: string | null;
+          message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          severity: "warning" | "error";
+          field?: string | null;
+          message: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_import_warnings"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_bncc_skills: {
+        Row: { id: string; question_id: string; bncc_skill_id: string };
+        Insert: { id?: string; question_id: string; bncc_skill_id: string };
+        Update: Partial<{ id: string; question_id: string; bncc_skill_id: string }>;
+        Relationships: [];
+      };
+
+      question_parts: {
+        Row: {
+          id: string;
+          question_id: string;
+          label: string;
+          prompt: string;
+          order_index: number;
+          points: number | null;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          label: string;
+          prompt: string;
+          order_index?: number;
+          points?: number | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_parts"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_answers: {
+        Row: {
+          id: string;
+          question_id: string;
+          question_part_id: string | null;
+          expected_answer: string;
+          correction_guidance: string | null;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          question_part_id?: string | null;
+          expected_answer: string;
+          correction_guidance?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_answers"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_rubrics: {
+        Row: {
+          id: string;
+          question_id: string;
+          question_part_id: string | null;
+          level: RubricLevel;
+          points: number | null;
+          criteria: string;
+          order_index: number;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          question_part_id?: string | null;
+          level: RubricLevel;
+          points?: number | null;
+          criteria: string;
+          order_index?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_rubrics"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_assets: {
+        Row: {
+          id: string;
+          question_id: string;
+          storage_path: string;
+          asset_type: "image" | "table_image" | "other";
+          original_name: string;
+          mime_type: string;
+          order_index: number;
+          alt_text: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          storage_path: string;
+          asset_type: "image" | "table_image" | "other";
+          original_name: string;
+          mime_type: string;
+          order_index?: number;
+          alt_text?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_assets"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_document_blocks: {
+        Row: {
+          id: string;
+          question_id: string;
+          section: "base_text" | "statement" | "correction" | "other";
+          block_type: "heading" | "paragraph" | "image" | "table" | "list_item";
+          content: unknown;
+          order_index: number;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          section: "base_text" | "statement" | "correction" | "other";
+          block_type: "heading" | "paragraph" | "image" | "table" | "list_item";
+          content: unknown;
+          order_index?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_document_blocks"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_favorites: {
+        Row: { id: string; teacher_id: string; question_id: string; created_at: string };
+        Insert: { id?: string; teacher_id: string; question_id: string; created_at?: string };
+        Update: Partial<{ id: string; teacher_id: string; question_id: string; created_at: string }>;
+        Relationships: [];
+      };
+
+      question_alternatives: {
+        Row: {
+          id: string;
+          question_id: string;
+          label: string;
+          body: string;
+          is_correct: boolean;
+          order_index: number;
+        };
+        Insert: {
+          id?: string;
+          question_id: string;
+          label: string;
+          body: string;
+          is_correct?: boolean;
+          order_index?: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_alternatives"]["Insert"]>;
+        Relationships: [];
+      };
+
+      generated_exams: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          title: string;
+          theme_id: string | null;
+          school_name: string | null;
+          instructions: string | null;
+          show_answer_key: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          title: string;
+          theme_id?: string | null;
+          school_name?: string | null;
+          instructions?: string | null;
+          show_answer_key?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["generated_exams"]["Insert"]>;
+        Relationships: [];
+      };
+
+      generated_exam_questions: {
+        Row: { id: string; exam_id: string; question_id: string; order_index: number };
+        Insert: { id?: string; exam_id: string; question_id: string; order_index?: number };
+        Update: Partial<{ id: string; exam_id: string; question_id: string; order_index: number }>;
         Relationships: [];
       };
 
@@ -622,6 +947,14 @@ export type Database = {
           status: ContentStatus;
           created_at: string;
           published_at: string | null;
+          activity_type: LearningActivityTypeDb | null;
+          config: unknown;
+          grade_id: string | null;
+          subject_id: string | null;
+          theme_id: string | null;
+          subtheme_id: string | null;
+          difficulty: ContentDifficulty | null;
+          estimated_duration_minutes: number | null;
         };
         Insert: {
           id?: string;
@@ -636,8 +969,23 @@ export type Database = {
           status?: ContentStatus;
           created_at?: string;
           published_at?: string | null;
+          activity_type?: LearningActivityTypeDb | null;
+          config?: unknown;
+          grade_id?: string | null;
+          subject_id?: string | null;
+          theme_id?: string | null;
+          subtheme_id?: string | null;
+          difficulty?: ContentDifficulty | null;
+          estimated_duration_minutes?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["learning_objects"]["Insert"]>;
+        Relationships: [];
+      };
+
+      learning_object_bncc_skills: {
+        Row: { id: string; learning_object_id: string; bncc_skill_id: string };
+        Insert: { id?: string; learning_object_id: string; bncc_skill_id: string };
+        Update: Partial<{ id: string; learning_object_id: string; bncc_skill_id: string }>;
         Relationships: [];
       };
 
@@ -758,6 +1106,11 @@ export type Database = {
       content_difficulty: ContentDifficulty;
       billing_period: BillingPeriod;
       subscription_status: SubscriptionStatus;
+      learning_activity_type: LearningActivityTypeDb;
+      question_type: QuestionType;
+      bloom_taxonomy_level: BloomTaxonomyLevel;
+      rubric_level: RubricLevel;
+      question_import_status: QuestionImportStatus;
     };
   };
 };

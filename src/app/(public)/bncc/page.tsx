@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { escapeOrFilterValue } from "@/lib/supabase/or-filter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { BnccSearchForm } from "@/components/bncc/bncc-search-form";
@@ -30,9 +33,24 @@ export default async function BnccPage({
     )
     .order("code");
 
-  if (q) query = query.or(`code.ilike.%${q}%,description.ilike.%${q}%`);
+  if (q) {
+    const pattern = escapeOrFilterValue(`%${q}%`);
+    query = query.or(`code.ilike.${pattern},description.ilike.${pattern}`);
+  }
 
   const { data: skills } = await query.returns<SkillRow[]>();
+
+  const skillIds = (skills ?? []).map((s) => s.id);
+  const relatedCounts = new Map<string, number>();
+  if (skillIds.length > 0) {
+    const { data: links } = await supabase
+      .from("content_bncc_skills")
+      .select("bncc_skill_id")
+      .in("bncc_skill_id", skillIds);
+    for (const link of links ?? []) {
+      relatedCounts.set(link.bncc_skill_id, (relatedCounts.get(link.bncc_skill_id) ?? 0) + 1);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
@@ -70,6 +88,17 @@ export default async function BnccPage({
                   {skill.thematic_unit && skill.knowledge_object ? " · " : ""}
                   {skill.knowledge_object}
                 </p>
+              )}
+              {(relatedCounts.get(skill.id) ?? 0) > 0 && (
+                <Link
+                  href={`/materiais?habilidade=${skill.id}`}
+                  className="flex w-fit items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
+                  Ver {relatedCounts.get(skill.id)} material
+                  {(relatedCounts.get(skill.id) ?? 0) > 1 ? "is" : ""} relacionado
+                  {(relatedCounts.get(skill.id) ?? 0) > 1 ? "s" : ""}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               )}
             </CardContent>
           </Card>

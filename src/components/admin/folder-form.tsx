@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { MultiCheckList, type MultiCheckOption } from "@/components/admin/multi-check-list";
+import { CONTENT_ACCESS_TYPE_LABELS, CONTENT_STATUS_LABELS } from "@/lib/labels";
 
 export function FolderForm({
   folderId,
@@ -72,7 +73,7 @@ export function FolderForm({
                 onValueChange={(value) => form.setValue("accessType", value ?? "teacher_only")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value: string) => CONTENT_ACCESS_TYPE_LABELS[value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="public">Público</SelectItem>
@@ -90,7 +91,7 @@ export function FolderForm({
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(value: string) => CONTENT_STATUS_LABELS[value]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Rascunho</SelectItem>

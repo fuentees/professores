@@ -15,7 +15,7 @@ export class NotAdminError extends Error {
  */
 export async function requireAdmin() {
   const profile = await getCurrentProfile();
-  if (!profile || profile.role !== "admin") {
+  if (!profile || profile.role !== "admin" || profile.status !== "active") {
     throw new NotAdminError();
   }
   return profile;

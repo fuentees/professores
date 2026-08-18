@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
-import { coverStoragePath } from "@/lib/storage/paths";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
+import { coverStoragePath, extractStoragePathFromPublicUrl } from "@/lib/storage/paths";
+import { validateCoverImage } from "@/lib/storage/file-validation";
 import { folderSchema } from "@/lib/validations/folder";
 
 export type ActionResult = { error: string | null; id?: string };
@@ -38,12 +39,13 @@ export async function createFolder(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const data = parsed.data;
+  const slug = await ensureUniqueSlug(supabase, "folders", slugify(data.title));
 
   const { data: folder, error } = await supabase
     .from("folders")
     .insert({
       title: data.title,
-      slug: slugify(data.title),
+      slug,
       description: data.description || null,
       access_type: data.accessType,
       status: data.status,
@@ -104,8 +106,16 @@ export async function deleteFolder(id: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+  const { data: current } = await supabase.from("folders").select("cover_url").eq("id", id).single();
+
   const { error } = await supabase.from("folders").delete().eq("id", id);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const path = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (path) await supabase.storage.from("public").remove([path]);
+  }
+
   revalidatePath(FOLDERS_PATH);
   return { error: null };
 }
@@ -143,7 +153,12 @@ export async function uploadFolderCover(folderId: string, file: File): Promise<A
     throw e;
   }
 
+  const validationError = validateCoverImage(file);
+  if (validationError) return { error: validationError };
+
   const supabase = await createClient();
+  const { data: current } = await supabase.from("folders").select("cover_url").eq("id", folderId).single();
+
   const path = coverStoragePath(folderId, file.name);
 
   const { error: uploadError } = await supabase.storage.from("public").upload(path, file, {
@@ -157,6 +172,11 @@ export async function uploadFolderCover(folderId: string, file: File): Promise<A
 
   const { error } = await supabase.from("folders").update({ cover_url: publicUrl }).eq("id", folderId);
   if (error) return { error: error.message };
+
+  if (current?.cover_url) {
+    const oldPath = extractStoragePathFromPublicUrl(current.cover_url, "public");
+    if (oldPath) await supabase.storage.from("public").remove([oldPath]);
+  }
 
   revalidatePath(FOLDERS_PATH);
   return { error: null };

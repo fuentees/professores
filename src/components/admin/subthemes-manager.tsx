@@ -39,7 +39,9 @@ export function SubthemesManager({ rows, themes }: { rows: SubthemeRow[]; themes
             onValueChange={(value) => form.setValue("themeId", value ?? "")}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione o tema" />
+              <SelectValue placeholder="Selecione o tema">
+                {(value: string) => (value ? themeName(value) : "Selecione o tema")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {themes.map((t) => (

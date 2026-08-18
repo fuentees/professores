@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
-import { slugify } from "@/lib/slug";
+import { slugify, ensureUniqueSlug } from "@/lib/slug";
 import { planSchema } from "@/lib/validations/plan";
 
 export type ActionResult = { error: string | null };
@@ -23,10 +23,11 @@ export async function createPlan(input: unknown): Promise<ActionResult> {
 
   const supabase = await createClient();
   const data = parsed.data;
+  const slug = await ensureUniqueSlug(supabase, "plans", slugify(data.name));
 
   const { error } = await supabase.from("plans").insert({
     name: data.name,
-    slug: slugify(data.name),
+    slug,
     description: data.description || null,
     price: data.price,
     billing_period: data.billingPeriod,

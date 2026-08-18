@@ -80,7 +80,9 @@ export function SimpleEntityManager<TRow extends SimpleEntityRow>({
             <Label>{parentLabel}</Label>
             <Select value={parentId} onValueChange={(value) => setParentId(value ?? "")}>
               <SelectTrigger className="w-56">
-                <SelectValue placeholder="Selecione" />
+                <SelectValue placeholder="Selecione">
+                  {(value: string) => (value ? parentName(value) : "Selecione")}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {parentOptions.map((p) => (

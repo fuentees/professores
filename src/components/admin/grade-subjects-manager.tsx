@@ -54,7 +54,9 @@ export function GradeSubjectsManager({
           <span className="text-sm text-muted-foreground">Série</span>
           <Select value={gradeId} onValueChange={(value) => setGradeId(value ?? "")}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Selecione a série" />
+              <SelectValue placeholder="Selecione a série">
+                {(value: string) => (value ? gradeName(value) : "Selecione a série")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {grades.map((g) => (
@@ -70,7 +72,9 @@ export function GradeSubjectsManager({
           <span className="text-sm text-muted-foreground">Disciplina</span>
           <Select value={subjectId} onValueChange={(value) => setSubjectId(value ?? "")}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Selecione a disciplina" />
+              <SelectValue placeholder="Selecione a disciplina">
+                {(value: string) => (value ? subjectName(value) : "Selecione a disciplina")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {subjects.map((s) => (

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ContentForm, type ContentFormOptions } from "@/components/admin/content-form";
 import { ContentFileManager } from "@/components/admin/content-file-manager";
+import { BnccSkillManager } from "@/components/admin/bncc-skill-manager";
 import type { ContentInput } from "@/lib/validations/content";
 import type { Database } from "@/types/supabase";
 
@@ -13,6 +14,7 @@ type ContentDetailRow = Database["public"]["Tables"]["contents"]["Row"] & {
   content_subthemes: { subtheme_id: string }[];
   content_content_types: { content_type_id: string }[];
   content_tags: { tags: { name: string } | null }[];
+  content_bncc_skills: { id: string; bncc_skills: { id: string; code: string; description: string } | null }[];
 };
 
 async function loadOptions(): Promise<ContentFormOptions> {
@@ -44,7 +46,7 @@ export default async function EditarMaterialPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: content }, options, { data: files }] = await Promise.all([
+  const [{ data: content }, options, { data: files }, { data: bnccSkills }] = await Promise.all([
     supabase
       .from("contents")
       .select(
@@ -55,7 +57,8 @@ export default async function EditarMaterialPage({
         content_themes(theme_id),
         content_subthemes(subtheme_id),
         content_content_types(content_type_id),
-        content_tags(tags(name))`,
+        content_tags(tags(name)),
+        content_bncc_skills(id, bncc_skills(id, code, description))`,
       )
       .eq("id", id)
       .maybeSingle()
@@ -66,6 +69,7 @@ export default async function EditarMaterialPage({
       .select("id, name, file_type, file_size")
       .eq("content_id", id)
       .order("order_index"),
+    supabase.from("bncc_skills").select("id, code, description").eq("status", "active").order("code"),
   ]);
 
   if (!content) notFound();
@@ -103,6 +107,19 @@ export default async function EditarMaterialPage({
       </div>
 
       <ContentFileManager contentId={id} coverUrl={content.cover_url} files={files ?? []} />
+
+      <BnccSkillManager
+        contentId={id}
+        linkedSkills={content.content_bncc_skills
+          .filter((r) => r.bncc_skills)
+          .map((r) => ({
+            linkId: r.id,
+            skillId: r.bncc_skills!.id,
+            code: r.bncc_skills!.code,
+            description: r.bncc_skills!.description,
+          }))}
+        availableSkills={bnccSkills ?? []}
+      />
 
       <ContentForm contentId={id} defaultValues={defaultValues} options={options} />
     </div>
