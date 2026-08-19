@@ -63,7 +63,14 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // false (não é o padrão do Base UI): com true, o popup tenta medir e
+  // alinhar o item selecionado exatamente sobre o gatilho — em formulários
+  // com bastante estado (react-hook-form com vários campos observados via
+  // watch()), essa medição corre risco de ficar presa a meio caminho (popup
+  // fica com data-closed/hidden só que o gatilho já marca aria-expanded
+  // como true — clique "não faz nada" pro usuário). Sem alignItemWithTrigger
+  // o popup só abre logo abaixo do gatilho, sem essa corrida.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
