@@ -2,6 +2,23 @@ import type { ExamQuestion } from "@/actions/exam-generator";
 import { QUESTION_TYPE_LABELS } from "@/lib/labels";
 
 /**
+ * Linhas pontilhadas pro aluno escrever à mão na impressão. `count` maior
+ * pro corpo da questão sem itens (resposta única, geralmente mais longa)
+ * e menor por item A/B/C (cada um já é um pedaço menor da resposta) — sem
+ * isso, uma questão discursiva de verdade ("explique...") ficava com só 3
+ * linhas curtas coladas, sem espaço real pra escrever.
+ */
+function AnswerLines({ count }: { count: number }) {
+  return (
+    <div className="flex flex-col gap-6 pt-2 pl-1 print:gap-5">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="border-b border-dotted pt-6 print:pt-5" />
+      ))}
+    </div>
+  );
+}
+
+/**
  * Corpo de uma questão (enunciado + itens A/B/C + alternativas ou linhas
  * pontilhadas), compartilhado entre a prévia interativa (ExamWorkspace) e
  * a folha de impressão (ExamPrintView) — pra não ter duas implementações
@@ -20,18 +37,22 @@ export function ExamQuestionBody({
   printAlternativeMarker?: boolean;
 }) {
   const bodyTone = mode === "preview" ? "text-muted-foreground" : "";
+  const isWritten = question.questionType !== "multiple_choice";
 
   return (
     <>
       <p className="whitespace-pre-wrap break-words font-medium">{question.statement}</p>
 
       {question.parts.length > 0 && (
-        <div className={`flex flex-col gap-2 pl-1 ${bodyTone}`}>
+        <div className={`flex flex-col gap-5 pl-1 ${bodyTone}`}>
           {question.parts.map((part) => (
-            <p key={part.id} className="whitespace-pre-wrap break-words">
-              <span className="font-semibold text-foreground">{part.label}) </span>
-              {part.prompt}
-            </p>
+            <div key={part.id}>
+              <p className="whitespace-pre-wrap break-words">
+                <span className="font-semibold text-foreground">{part.label}) </span>
+                {part.prompt}
+              </p>
+              {isWritten && mode === "print" && <AnswerLines count={3} />}
+            </div>
           ))}
         </div>
       )}
@@ -46,17 +67,13 @@ export function ExamQuestionBody({
             </li>
           ))}
         </ul>
-      ) : mode === "print" ? (
-        <div className="flex flex-col gap-4 pt-1 pl-1">
-          <div className="border-b border-dotted pt-4" />
-          <div className="border-b border-dotted pt-4" />
-          <div className="border-b border-dotted pt-4" />
-        </div>
-      ) : (
+      ) : question.parts.length === 0 && mode === "print" ? (
+        <AnswerLines count={6} />
+      ) : question.parts.length === 0 ? (
         <p className="pl-1 text-muted-foreground">
           {QUESTION_TYPE_LABELS[question.questionType] ?? "Questão"} (resposta aberta).
         </p>
-      )}
+      ) : null}
     </>
   );
 }

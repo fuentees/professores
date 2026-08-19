@@ -47,13 +47,33 @@ function imageRelIdsInParagraph(p: XmlNode): string[] {
   return ids;
 }
 
+// Fim de frase/parênteses/linha em branco (não seguido de espaço) seguido de
+// letra maiúscula — sinal forte de fronteira entre runs onde o espaço
+// "sumiu" (ex.: "nele.O foco", "Escrita)Os pratos" ou "resposta.____B)O
+// modo" — linha de "___" pra resposta manual seguida do próximo item).  Só
+// cobre a fronteira ENTRE dois runs, nunca dentro do texto de um único run —
+// não é global/stateful, é testado uma vez por par de runs.
+const SENTENCE_END = /[.!?:;)_]/;
+// Maiúscula (nova frase) ou dígito (item numerado, ex.: "pedra.2. Fonte...").
+const NEW_SEGMENT_START = /[A-ZÀ-Ý0-9]/;
+
 function paragraphText(p: XmlNode): string {
-  // Cada <w:t> é um run de texto; concatenar direto (sem espaço extra entre
-  // runs) preserva a formatação lógica do parágrafo original. extractText()
-  // desce recursivamente até o nó "#text" real — em modo preserveOrder, o
-  // próprio nó <w:t> não tem "#text" diretamente, só o filho dele.
-  const textRuns = findDescendantsByTag(p, "w:t");
-  return textRuns.map((t) => extractText(t)).join("");
+  // Cada <w:t> é um run de texto. extractText() desce recursivamente até o
+  // nó "#text" real — em modo preserveOrder, o próprio nó <w:t> não tem
+  // "#text" diretamente, só o filho dele.
+  const textRuns = findDescendantsByTag(p, "w:t").map((t) => extractText(t));
+  return textRuns.reduce((acc, run, i) => {
+    if (i === 0 || run === "") return acc + run;
+    const lastChar = acc.slice(-1);
+    const firstChar = run[0];
+    const needsSpace =
+      lastChar !== "" &&
+      !/\s/.test(lastChar) &&
+      !/\s/.test(firstChar) &&
+      SENTENCE_END.test(lastChar) &&
+      NEW_SEGMENT_START.test(firstChar);
+    return needsSpace ? `${acc} ${run}` : acc + run;
+  }, "");
 }
 
 /** Percorre `w:body` e devolve uma lista plana e ordenada de parágrafos/tabelas. */

@@ -40,6 +40,20 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.leadingText.length).toBeLessThan(draft.statementCandidates[0].length);
   });
 
+  it("preserva espaços entre palavras que o Word divide em runs diferentes (HIS4-1T-004)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("his4-1t-004.docx"));
+
+    // O fast-xml-parser corta espaço em branco de cada nó de texto por
+    // padrão (trimValues) — isso apagava exatamente os espaços "soltos"
+    // entre runs do Word (ex.: "recordações em"+" "+"família" virava
+    // "recordações emfamília"). Ver ooxml.ts (trimValues: false) e
+    // walk-body.ts (junção com heurística de fronteira de frase).
+    expect(draft.leadingText).toContain("recordações em família");
+    expect(draft.leadingText).not.toContain("emfamília");
+    expect(draft.leadingText).toContain("QUADRO 1: A avó");
+    expect(draft.leadingText).not.toContain("QUADRO 1:A avó");
+  });
+
   it("extrai itens A/B/C embutidos no texto corrido (HIS4-1T-001_A)", async () => {
     const { draft } = await parseQuestionDocx(loadFixture("his4-1t-001-a.docx"));
 

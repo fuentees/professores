@@ -12,6 +12,16 @@ const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
   textNodeName: "#text",
+  // O Word quebra uma frase em vários <w:r> por mudança de formatação, e o
+  // espaço entre duas palavras às vezes vira um run só com um espaço (ou um
+  // espaço no início/fim de um run), marcado com xml:space="preserve". O
+  // fast-xml-parser, por padrão, dá trim em todo texto — isso apaga
+  // exatamente esses espaços "soltos" e cola as palavras (ex.: "que" +
+  // "tipo" vira "quetipo"). trimValues: false preserva o texto como está no
+  // XML; como o document.xml do Word nunca é pretty-printed (sem quebras de
+  // linha/indentação entre tags), não há espaço espúrio de formatação do
+  // XML em si pra se preocupar.
+  trimValues: false,
 });
 
 export type XmlNode = Record<string, unknown>;
