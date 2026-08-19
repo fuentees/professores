@@ -125,7 +125,7 @@ export default async function MaterialDetailPage({
 
       {content.short_description && <p className="text-muted-foreground">{content.short_description}</p>}
 
-      {content.body && (
+      {content.body && canSeeFiles && (
         <div className="whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">
           {content.body}
         </div>

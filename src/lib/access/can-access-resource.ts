@@ -21,6 +21,7 @@ export async function canAccessResource(
 ): Promise<boolean> {
   if (resource.accessType === "public") return true;
   if (!profile) return false;
+  if (profile.status !== "active") return false;
   if (resource.accessType === "subscriber_only") {
     return hasSubscriberAccess(supabase, profile.id, grantTarget);
   }

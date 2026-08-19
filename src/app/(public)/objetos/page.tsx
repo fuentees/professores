@@ -8,7 +8,7 @@ export default async function ObjetosPage() {
   const supabase = await createClient();
   const { data: objects } = await supabase
     .from("learning_objects")
-    .select("slug, title, description, cover_url, object_type")
+    .select("slug, title, description, cover_url, object_type, activity_type")
     .order("created_at", { ascending: false });
 
   return (

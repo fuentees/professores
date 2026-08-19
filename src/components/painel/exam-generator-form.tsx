@@ -14,17 +14,20 @@ import {
 } from "@/components/admin/cascading-taxonomy-select";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import { generateExamPreview, type ExamQuestion } from "@/actions/exam-generator";
-import { MAX_QUESTIONS_PER_EXAM } from "@/lib/validations/exam-generator";
+import { MAX_QUESTIONS_PER_EXAM, EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
+import { QUESTION_TYPE_LABELS } from "@/lib/labels";
+import type { QuestionType } from "@/types/supabase";
 
 type Requested = { easy: number; medium: number; hard: number };
+
+const DEFAULT_QUESTION_TYPES: QuestionType[] = ["multiple_choice", "essay"];
 
 export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: TaxonomyOptions }) {
   const [taxonomy, setTaxonomy] = useState<TaxonomySelection>(EMPTY_TAXONOMY_SELECTION);
   const [easyCount, setEasyCount] = useState(0);
   const [mediumCount, setMediumCount] = useState(0);
   const [hardCount, setHardCount] = useState(0);
-  const [includeMultipleChoice, setIncludeMultipleChoice] = useState(true);
-  const [includeEssay, setIncludeEssay] = useState(false);
+  const [questionTypes, setQuestionTypes] = useState<QuestionType[]>(DEFAULT_QUESTION_TYPES);
   const [generating, setGenerating] = useState(false);
 
   const [preview, setPreview] = useState<{
@@ -37,9 +40,12 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
   const filters = {
     themeId: taxonomy.themeId,
     subthemeId: taxonomy.subthemeId,
-    includeMultipleChoice,
-    includeEssay,
+    questionTypes,
   };
+
+  function toggleType(type: QuestionType, checked: boolean) {
+    setQuestionTypes((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)));
+  }
 
   async function handleGenerate() {
     if (!taxonomy.themeId) {
@@ -54,7 +60,7 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
       toast.error(`Máximo de ${MAX_QUESTIONS_PER_EXAM} questões por prova.`);
       return;
     }
-    if (!includeMultipleChoice && !includeEssay) {
+    if (questionTypes.length === 0) {
       toast.error("Selecione pelo menos um tipo de questão.");
       return;
     }
@@ -66,8 +72,7 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
       easyCount,
       mediumCount,
       hardCount,
-      includeMultipleChoice,
-      includeEssay,
+      questionTypes,
     });
     setGenerating(false);
 
@@ -157,18 +162,16 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
             <div className="flex flex-col gap-2">
               <Label>Tipo de questão</Label>
               <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={includeMultipleChoice}
-                    onChange={(e) => setIncludeMultipleChoice(e.target.checked)}
-                  />
-                  Múltipla escolha
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={includeEssay} onChange={(e) => setIncludeEssay(e.target.checked)} />
-                  Dissertativa
-                </label>
+                {EXAM_QUESTION_TYPES.map((type) => (
+                  <label key={type} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={questionTypes.includes(type)}
+                      onChange={(e) => toggleType(type, e.target.checked)}
+                    />
+                    {QUESTION_TYPE_LABELS[type] ?? type}
+                  </label>
+                ))}
               </div>
             </div>
 

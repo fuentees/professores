@@ -5,6 +5,7 @@ import { Printer, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import type { ExamQuestion, GeneratedExamDetail } from "@/actions/exam-generator";
+import { EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
 
 const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
   easy: "Fácil",
@@ -24,7 +25,7 @@ export function ExamPrintView({ exam, questions }: { exam: GeneratedExamDetail; 
         <ExamWorkspace
           mode="edit"
           examId={exam.id}
-          filters={{ themeId: exam.themeId ?? "", includeMultipleChoice: true, includeEssay: true }}
+          filters={{ themeId: exam.themeId ?? "", questionTypes: [...EXAM_QUESTION_TYPES] }}
           initialQuestions={questions}
           initialTitle={exam.title}
           initialSchoolName={exam.schoolName ?? ""}

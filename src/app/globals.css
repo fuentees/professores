@@ -39,6 +39,14 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-interactive: var(--interactive);
+  --color-interactive-soft: var(--interactive-soft);
+  --color-bncc: var(--bncc);
+  --color-bncc-soft: var(--bncc-soft);
+  --color-assessment: var(--assessment);
+  --color-assessment-soft: var(--assessment-soft);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -81,6 +89,20 @@
   --sidebar-accent-foreground: oklch(0.3 0.08 264);
   --sidebar-border: oklch(0.9 0.01 264);
   --sidebar-ring: oklch(0.65 0.15 264);
+
+  /* Tokens semânticos por área de conteúdo — mesmo padrão de duas camadas
+     do resto do arquivo (base saturado pra texto/ícone, "-soft" claro pra
+     fundo de badge/card). Uso restrito e curado: recursos interativos,
+     habilidades BNCC, provas/avaliação e destaques editoriais — não um
+     mapeamento de cor por disciplina em todo o app. */
+  --interactive: oklch(0.55 0.19 320);
+  --interactive-soft: oklch(0.95 0.035 320);
+  --bncc: oklch(0.5 0.13 165);
+  --bncc-soft: oklch(0.95 0.03 165);
+  --assessment: oklch(0.55 0.17 35);
+  --assessment-soft: oklch(0.95 0.035 35);
+  --highlight: oklch(0.55 0.15 85);
+  --highlight-soft: oklch(0.95 0.05 85);
 }
 
 .dark {
@@ -115,6 +137,15 @@
   --sidebar-accent-foreground: oklch(0.95 0.02 264);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.6 0.18 264);
+
+  --interactive: oklch(0.75 0.16 320);
+  --interactive-soft: oklch(0.3 0.06 320);
+  --bncc: oklch(0.72 0.13 165);
+  --bncc-soft: oklch(0.28 0.05 165);
+  --assessment: oklch(0.74 0.15 35);
+  --assessment-soft: oklch(0.3 0.06 35);
+  --highlight: oklch(0.78 0.13 85);
+  --highlight-soft: oklch(0.3 0.06 85);
 }
 
 @layer base {
@@ -126,5 +157,10 @@
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight;
   }
 }

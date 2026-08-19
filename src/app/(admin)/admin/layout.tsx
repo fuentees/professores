@@ -1,17 +1,14 @@
 import { redirect } from "next/navigation";
 import {
-  BarChart3,
   BookMarked,
   BookOpen,
   FolderOpen,
   GraduationCap,
   Home,
-  Image as ImageIcon,
   LayoutGrid,
   ListTree,
   MessageSquare,
   Newspaper,
-  Settings,
   ShieldCheck,
   SquareStack,
   Tags,
@@ -39,10 +36,7 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/admin/forum", label: "Fórum", icon: MessageSquare },
   { href: "/admin/professores", label: "Professores", icon: Users },
   { href: "/admin/planos", label: "Planos e assinaturas", icon: Wallet },
-  { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
-  { href: "/admin/banners", label: "Banners", icon: ImageIcon },
-  { href: "/admin/importacoes", label: "Importações", icon: Upload },
-  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/admin/questoes/importacoes", label: "Importações de questões", icon: Upload },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

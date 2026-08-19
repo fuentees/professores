@@ -11,7 +11,7 @@ import type { QuestionType } from "@/types/supabase";
 export type ExamQuestion = {
   id: string;
   statement: string;
-  questionType: "multiple_choice" | "essay";
+  questionType: QuestionType;
   difficulty: "easy" | "medium" | "hard";
   answerKey: string | null;
   alternatives: { id: string; label: string; body: string; isCorrect: boolean }[];
@@ -36,16 +36,6 @@ function shuffle<T>(items: T[]): T[] {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
-}
-
-function allowedQuestionTypes(filters: {
-  includeMultipleChoice: boolean;
-  includeEssay: boolean;
-}): QuestionType[] {
-  const types: QuestionType[] = [];
-  if (filters.includeMultipleChoice) types.push("multiple_choice");
-  if (filters.includeEssay) types.push("essay");
-  return types;
 }
 
 async function pickQuestionIds(
@@ -83,28 +73,57 @@ async function hydrateQuestions(
 ): Promise<ExamQuestion[]> {
   if (ids.length === 0) return [];
 
-  const [{ data: questions }, { data: alternatives }] = await Promise.all([
+  const [{ data: questions }, { data: alternatives }, { data: answers }] = await Promise.all([
     admin.from("questions").select("id, statement, question_type, difficulty, answer_key").in("id", ids),
     admin
       .from("question_alternatives")
       .select("id, question_id, label, body, is_correct, order_index")
       .in("question_id", ids)
       .order("order_index"),
+    // questões importadas do banco de questões não preenchem
+    // questions.answer_key (o gabarito delas fica em question_answers,
+    // possivelmente um registro por parte A/B/C) — busca aqui pra não
+    // aparecer "sem resposta cadastrada" indevidamente no gerador de provas.
+    admin.from("question_answers").select("question_id, question_part_id, expected_answer").in("question_id", ids),
   ]);
 
-  return (questions ?? []).map((q) => ({
-    id: q.id,
-    statement: q.statement,
-    // question_type agora inclui os tipos importados do banco de questões,
-    // mas ids aqui só vêm de pickQuestionIds/generated_exam_questions, que
-    // sempre filtram question_type em ["multiple_choice", "essay"].
-    questionType: q.question_type as "multiple_choice" | "essay",
-    difficulty: q.difficulty,
-    answerKey: q.answer_key,
-    alternatives: (alternatives ?? [])
-      .filter((a) => a.question_id === q.id)
-      .map((a) => ({ id: a.id, label: a.label, body: a.body, isCorrect: a.is_correct })),
-  }));
+  const partIds = (answers ?? []).map((a) => a.question_part_id).filter((id): id is string => Boolean(id));
+  const { data: parts } =
+    partIds.length > 0
+      ? await admin.from("question_parts").select("id, label, order_index").in("id", partIds)
+      : { data: [] as { id: string; label: string; order_index: number }[] };
+  const partById = new Map((parts ?? []).map((p) => [p.id, p]));
+
+  const answersByQuestion = new Map<string, { label: string | null; order: number; text: string }[]>();
+  for (const a of answers ?? []) {
+    const part = a.question_part_id ? partById.get(a.question_part_id) : undefined;
+    const list = answersByQuestion.get(a.question_id) ?? [];
+    list.push({
+      label: part?.label ?? null,
+      order: part?.order_index ?? 0,
+      text: a.expected_answer,
+    });
+    answersByQuestion.set(a.question_id, list);
+  }
+
+  return (questions ?? []).map((q) => {
+    const fallbackParts = (answersByQuestion.get(q.id) ?? []).sort((a, b) => a.order - b.order);
+    const fallbackAnswer =
+      fallbackParts.length > 0
+        ? fallbackParts.map((p) => (p.label ? `${p.label}: ${p.text}` : p.text)).join("\n")
+        : null;
+
+    return {
+      id: q.id,
+      statement: q.statement,
+      questionType: q.question_type,
+      difficulty: q.difficulty,
+      answerKey: q.answer_key ?? fallbackAnswer,
+      alternatives: (alternatives ?? [])
+        .filter((a) => a.question_id === q.id)
+        .map((a) => ({ id: a.id, label: a.label, body: a.body, isCorrect: a.is_correct })),
+    };
+  });
 }
 
 export async function generateExamPreview(input: unknown): Promise<GeneratePreviewResult> {
@@ -116,7 +135,7 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
   const filters = parsed.data;
 
   const admin = createAdminClient();
-  const types = allowedQuestionTypes(filters);
+  const types = filters.questionTypes;
 
   const requested: DifficultyBuckets = {
     easy: filters.easyCount,
@@ -159,13 +178,13 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
 export async function swapExamQuestion(
   excludeIds: string[],
   difficulty: "easy" | "medium" | "hard",
-  filters: { themeId: string; subthemeId?: string; includeMultipleChoice: boolean; includeEssay: boolean },
+  filters: { themeId: string; subthemeId?: string; questionTypes: QuestionType[] },
 ): Promise<SwapResult> {
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para gerar uma prova." };
 
   const admin = createAdminClient();
-  const types = allowedQuestionTypes(filters);
+  const types = filters.questionTypes;
   const ids = await pickQuestionIds(admin, {
     themeId: filters.themeId,
     subthemeId: filters.subthemeId,
@@ -213,32 +232,23 @@ export async function saveGeneratedExam(input: unknown): Promise<SaveExamResult>
     return { error: "Uma ou mais questões não estão mais disponíveis. Gere a prévia novamente." };
   }
 
-  const { data: exam, error } = await supabase
-    .from("generated_exams")
-    .insert({
-      teacher_id: profile.id,
-      title: data.title,
-      theme_id: data.themeId,
-      school_name: data.schoolName || null,
-      instructions: data.instructions || null,
-      show_answer_key: data.showAnswerKey,
-    })
-    .select("id")
-    .single();
+  // create_generated_exam insere a prova + os vínculos de questão + o
+  // evento de cota numa única transação (RPC, security invoker) — uma
+  // falha no meio não deixa mais a prova salva pela metade nem loga uma
+  // geração que não existe.
+  const { data: examId, error } = await supabase.rpc("create_generated_exam", {
+    p_title: data.title,
+    p_theme_id: data.themeId,
+    p_school_name: data.schoolName || null,
+    p_instructions: data.instructions || null,
+    p_show_answer_key: data.showAnswerKey,
+    p_question_ids: data.questionIds,
+  });
 
-  if (error || !exam) return { error: error?.message ?? "Não foi possível salvar a prova." };
-
-  const { error: linkError } = await supabase.from("generated_exam_questions").insert(
-    data.questionIds.map((questionId, index) => ({
-      exam_id: exam.id,
-      question_id: questionId,
-      order_index: index,
-    })),
-  );
-  if (linkError) return { error: linkError.message };
+  if (error || !examId) return { error: error?.message ?? "Não foi possível salvar a prova." };
 
   revalidatePath("/painel/provas");
-  return { error: null, id: exam.id };
+  return { error: null, id: examId };
 }
 
 export async function updateGeneratedExam(examId: string, input: unknown): Promise<SaveExamResult> {
@@ -261,35 +271,20 @@ export async function updateGeneratedExam(examId: string, input: unknown): Promi
   }
 
   const supabase = await createClient();
-  const { data: updated, error } = await supabase
-    .from("generated_exams")
-    .update({
-      title: data.title,
-      school_name: data.schoolName || null,
-      instructions: data.instructions || null,
-      show_answer_key: data.showAnswerKey,
-    })
-    .eq("id", examId)
-    .eq("teacher_id", profile.id)
-    .select("id");
+  const { data: updatedId, error } = await supabase.rpc("update_generated_exam", {
+    p_exam_id: examId,
+    p_title: data.title,
+    p_school_name: data.schoolName || null,
+    p_instructions: data.instructions || null,
+    p_show_answer_key: data.showAnswerKey,
+    p_question_ids: data.questionIds,
+  });
 
-  if (error || !updated || updated.length === 0) {
-    return { error: error?.message ?? "Prova não encontrada." };
-  }
-
-  await supabase.from("generated_exam_questions").delete().eq("exam_id", examId);
-  const { error: linkError } = await supabase.from("generated_exam_questions").insert(
-    data.questionIds.map((questionId, index) => ({
-      exam_id: examId,
-      question_id: questionId,
-      order_index: index,
-    })),
-  );
-  if (linkError) return { error: linkError.message };
+  if (error || !updatedId) return { error: error?.message ?? "Prova não encontrada." };
 
   revalidatePath("/painel/provas");
   revalidatePath(`/painel/provas/${examId}`);
-  return { error: null, id: examId };
+  return { error: null, id: updatedId };
 }
 
 export type GeneratedExamDetail = {

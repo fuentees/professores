@@ -11,6 +11,7 @@ import type { BloomTaxonomyLevel, ContentDifficulty, QuestionType } from "@/type
 export type QuestionCard = {
   id: string;
   code: string | null;
+  title: string | null;
   statement: string;
   questionType: string;
   difficulty: string;
@@ -42,10 +43,24 @@ export async function searchQuestions(
 ): Promise<{ error: string | null; questions: QuestionCard[]; total: number }> {
   const admin = createAdminClient();
 
+  // Filtro por BNCC precisa resolver o conjunto de ids ANTES do .limit() da
+  // query principal — senão a busca aplicava esse filtro só nos 24
+  // resultados já paginados, podendo devolver menos questões do que
+  // realmente existem (ou nenhuma) mesmo havendo mais correspondências.
+  let bnccQuestionIds: string[] | null = null;
+  if (filters.bnccSkillId) {
+    const { data: linkedIds } = await admin
+      .from("question_bncc_skills")
+      .select("question_id")
+      .eq("bncc_skill_id", filters.bnccSkillId);
+    bnccQuestionIds = (linkedIds ?? []).map((l) => l.question_id);
+    if (bnccQuestionIds.length === 0) return { error: null, questions: [], total: 0 };
+  }
+
   let query = admin
     .from("questions")
     .select(
-      `id, code, statement, question_type, difficulty, bloom_primary_level,
+      `id, code, title, statement, question_type, difficulty, bloom_primary_level,
       subjects(name), grades(name),
       question_bncc_skills(bncc_skills(code))`,
       { count: "exact" },
@@ -63,12 +78,17 @@ export async function searchQuestions(
   if (filters.difficulty) query = query.eq("difficulty", filters.difficulty as ContentDifficulty);
   if (filters.bloomLevel) query = query.eq("bloom_primary_level", filters.bloomLevel as BloomTaxonomyLevel);
   if (filters.questionType) query = query.eq("question_type", filters.questionType as QuestionType);
-  if (filters.q) query = query.or(`statement.ilike.%${filters.q}%,code.ilike.%${filters.q}%`);
+  if (filters.q) {
+    const term = filters.q.replace(/[%_]/g, (c) => `\\${c}`);
+    query = query.or(`statement.ilike.%${term}%,code.ilike.%${term}%,pedagogical_note.ilike.%${term}%`);
+  }
+  if (bnccQuestionIds) query = query.in("id", bnccQuestionIds);
 
   const { data, count, error } = await query.returns<
     {
       id: string;
       code: string | null;
+      title: string | null;
       statement: string;
       question_type: string;
       difficulty: string;
@@ -81,9 +101,10 @@ export async function searchQuestions(
 
   if (error) return { error: error.message, questions: [], total: 0 };
 
-  let cards: QuestionCard[] = (data ?? []).map((q) => ({
+  const cards: QuestionCard[] = (data ?? []).map((q) => ({
     id: q.id,
     code: q.code,
+    title: q.title,
     statement: q.statement,
     questionType: q.question_type,
     difficulty: q.difficulty,
@@ -92,15 +113,6 @@ export async function searchQuestions(
     gradeName: q.grades?.name ?? null,
     bnccCodes: q.question_bncc_skills.map((s) => s.bncc_skills?.code).filter((c): c is string => Boolean(c)),
   }));
-
-  if (filters.bnccSkillId) {
-    const { data: linkedIds } = await admin
-      .from("question_bncc_skills")
-      .select("question_id")
-      .eq("bncc_skill_id", filters.bnccSkillId);
-    const idSet = new Set((linkedIds ?? []).map((l) => l.question_id));
-    cards = cards.filter((c) => idSet.has(c.id));
-  }
 
   return { error: null, questions: cards, total: count ?? cards.length };
 }
@@ -130,6 +142,7 @@ export async function getQuestionDetail(id: string): Promise<{ error: string | n
   type QuestionDetailRow = {
     id: string;
     code: string | null;
+    title: string | null;
     statement: string;
     question_type: string;
     difficulty: string;
@@ -159,7 +172,7 @@ export async function getQuestionDetail(id: string): Promise<{ error: string | n
   const { data: question } = await admin
     .from("questions")
     .select(
-      `id, code, statement, question_type, difficulty, bloom_primary_level, bloom_justification,
+      `id, code, title, statement, question_type, difficulty, bloom_primary_level, bloom_justification,
       pedagogical_note, knowledge_objects, book_name, book_unit, access_type, original_file_path,
       subjects(name), grades(name),
       question_bncc_skills(bncc_skills(code)),
@@ -180,6 +193,7 @@ export async function getQuestionDetail(id: string): Promise<{ error: string | n
     question: {
       id: question.id,
       code: question.code,
+      title: question.title,
       statement: question.statement,
       questionType: question.question_type,
       difficulty: question.difficulty,

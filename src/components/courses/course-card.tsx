@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
+import { Clock, GraduationCap, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export type CourseCardData = {
@@ -12,29 +12,48 @@ export type CourseCardData = {
   workload_hours: number | null;
 };
 
+// Card de "produto" — deliberadamente mais elevado que MaterialCard
+// (shadow-sm já em repouso, radius maior, capa com overlay) pra parecer um
+// curso completo, não um arquivo pra baixar.
 export function CourseCard({ course }: { course: CourseCardData }) {
   return (
     <Link
       href={`/cursos/${course.slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-lg"
     >
-      <div className="relative aspect-video bg-muted">
+      <div className="relative aspect-video bg-gradient-to-br from-primary/15 to-primary/5">
         {course.cover_url ? (
           <Image src={course.cover_url} alt={course.title} fill className="object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <GraduationCap className="h-8 w-8" />
+          <div className="flex h-full w-full items-center justify-center text-primary/60">
+            <GraduationCap className="h-10 w-10" strokeWidth={1.5} />
           </div>
         )}
+        <Badge className="absolute left-3 top-3 gap-1 bg-primary text-primary-foreground hover:bg-primary">
+          <GraduationCap className="h-3 w-3" />
+          Curso
+        </Badge>
       </div>
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h2 className="line-clamp-2 font-semibold group-hover:underline">{course.title}</h2>
+      <div className="flex flex-1 flex-col gap-2 p-5">
+        <h2 className="line-clamp-2 text-lg font-semibold tracking-tight group-hover:underline">
+          {course.title}
+        </h2>
         {course.description && (
           <p className="line-clamp-2 text-sm text-muted-foreground">{course.description}</p>
         )}
-        <div className="mt-auto flex flex-wrap gap-2 pt-2 text-xs">
-          {course.instructor && <Badge variant="outline">{course.instructor}</Badge>}
-          {course.workload_hours && <Badge variant="outline">{course.workload_hours}h</Badge>}
+        <div className="mt-auto flex flex-wrap items-center gap-3 border-t pt-3 text-xs text-muted-foreground">
+          {course.instructor && (
+            <span className="flex items-center gap-1">
+              <User className="h-3.5 w-3.5" />
+              {course.instructor}
+            </span>
+          )}
+          {course.workload_hours && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {course.workload_hours}h
+            </span>
+          )}
         </div>
       </div>
     </Link>

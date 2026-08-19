@@ -2,10 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getQuestionDetail } from "@/actions/question-bank";
+import { fetchQuestionDocumentBlocks } from "@/lib/queries/question-document-blocks";
 import { Badge } from "@/components/ui/badge";
 import { DIFFICULTY_LABELS, BLOOM_TAXONOMY_LABELS, QUESTION_TYPE_LABELS, RUBRIC_LEVEL_LABELS } from "@/lib/labels";
 import { CollapsibleSection } from "@/components/questions/collapsible-section";
+import { QuestionDocumentRenderer } from "@/components/questions/question-document-renderer";
 import { QuestionFavoriteButton } from "@/components/questions/question-favorite-button";
 import { QuestionOriginalDownloadButton } from "@/components/questions/question-original-download-button";
 
@@ -29,6 +32,11 @@ export default async function QuestionDetailPage({
       .maybeSingle();
     initialFavorited = Boolean(favorite);
   }
+
+  // question_document_blocks/question_assets são admin-only via RLS —
+  // mesmo padrão do resto do banco de questões (createAdminClient() +
+  // filtro explícito já feito por getQuestionDetail acima).
+  const documentBlocks = await fetchQuestionDocumentBlocks(createAdminClient(), id);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
@@ -78,6 +86,12 @@ export default async function QuestionDetailPage({
           </div>
         )}
       </div>
+
+      {documentBlocks.length > 0 && (
+        <CollapsibleSection title="Documento original">
+          <QuestionDocumentRenderer blocks={documentBlocks} />
+        </CollapsibleSection>
+      )}
 
       {question.answers.length > 0 && (
         <CollapsibleSection title="Gabarito">

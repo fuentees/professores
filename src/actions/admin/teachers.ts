@@ -44,6 +44,16 @@ export async function createManualSubscription(
   }
 
   const supabase = await createClient();
+
+  // Só pode haver uma assinatura "active" por professor (índice único
+  // parcial em subscriptions) — supersede a anterior antes de criar a
+  // nova, em vez de deixar duas vivas ou estourar a constraint.
+  await supabase
+    .from("subscriptions")
+    .update({ status: "canceled" })
+    .eq("teacher_id", teacherId)
+    .eq("status", "active");
+
   const { error } = await supabase.from("subscriptions").insert({
     teacher_id: teacherId,
     plan_id: planId,

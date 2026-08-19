@@ -9,6 +9,8 @@ import {
   QUESTION_IMPORT_STATUS_LABELS,
 } from "@/lib/labels";
 import { ImportReviewActions } from "@/components/admin/import-review-actions";
+import { fetchQuestionDocumentBlocks } from "@/lib/queries/question-document-blocks";
+import { QuestionDocumentRenderer } from "@/components/questions/question-document-renderer";
 
 type ImportDetail = {
   id: string;
@@ -95,6 +97,8 @@ export default async function ImportReviewPage({
       .createSignedUrl(question.original_file_path, 300);
     originalUrl = signed?.signedUrl ?? null;
   }
+
+  const documentBlocks = question ? await fetchQuestionDocumentBlocks(supabase, question.id) : [];
 
   const sortedParts = [...(question?.question_parts ?? [])].sort((a, b) => a.order_index - b.order_index);
 
@@ -195,17 +199,19 @@ export default async function ImportReviewPage({
                   <p className="text-muted-foreground">{part.prompt}</p>
                 </div>
               ))}
-              {question.question_assets.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {question.question_assets.map((asset) => (
-                    <Badge key={asset.id} variant="outline">
-                      🖼 {asset.original_name}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </CardContent>
           </Card>
+
+          {documentBlocks.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Documento original (reconstrução)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QuestionDocumentRenderer blocks={documentBlocks} />
+              </CardContent>
+            </Card>
+          )}
 
           {(question.question_answers.length > 0 || question.question_rubrics.length > 0) && (
             <Card>

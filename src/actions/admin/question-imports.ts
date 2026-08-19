@@ -202,90 +202,50 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     : null;
 
   const questionId = randomUUID();
-  const { error: questionInsertError } = await admin.from("questions").insert({
-    id: questionId,
-    statement: draft.statementCandidates[0] ?? "",
-    question_type: "discursive",
-    difficulty: draft.difficultyRaw.value ?? "medium",
-    theme_id: null,
-    status: "inactive",
-    publication_status: "draft",
-    code: draft.code.value,
-    subject_id: subjectId,
-    grade_id: gradeId,
-    knowledge_objects: draft.knowledgeObjects.length > 0 ? draft.knowledgeObjects : null,
-    academic_period_id: academicPeriodId,
-    book_name: draft.bookName.value,
-    book_unit: draft.bookUnit.value,
-    bloom_primary_level: bloomPrimary,
-    bloom_justification: draft.bloomJustification.value,
-    pedagogical_note: draft.pedagogicalNote.value,
-    original_file_path: storagePath,
-    import_id: importId,
-  });
-  if (questionInsertError) {
-    await admin
-      .from("question_imports")
-      .update({ status: "failed", error_message: questionInsertError.message, processed_at: new Date().toISOString() })
-      .eq("id", importId);
-    return { error: null, importId };
-  }
-
-  if (matchedBnccIds.length > 0) {
-    await admin
-      .from("question_bncc_skills")
-      .insert(matchedBnccIds.map((bncc_skill_id) => ({ question_id: questionId, bncc_skill_id })));
-  }
 
   const partIdByLabel = new Map<string, string>();
-  if (draft.items.length > 0) {
-    const partsToInsert = draft.items.map((item, index) => ({
-      id: randomUUID(),
-      question_id: questionId,
-      label: item.label,
-      prompt: item.prompt,
-      order_index: index,
-    }));
-    await admin.from("question_parts").insert(partsToInsert);
-    for (const part of partsToInsert) partIdByLabel.set(part.label, part.id);
-  }
+  const parts = draft.items.map((item, index) => {
+    const id = randomUUID();
+    partIdByLabel.set(item.label, id);
+    return { id, label: item.label, prompt: item.prompt, order_index: index };
+  });
 
-  if (draft.answers.length > 0) {
-    await admin.from("question_answers").insert(
-      draft.answers.map((answer) => ({
-        question_id: questionId,
-        question_part_id: answer.itemLabel ? (partIdByLabel.get(answer.itemLabel) ?? null) : null,
-        expected_answer: answer.expectedAnswer,
-        correction_guidance: answer.correctionGuidance,
-      })),
-    );
-  } else if (draft.correctionProse) {
-    // Documentos que só têm correção em prosa livre (sem "Comando X"/"Item
-    // X" por item) não geram `answers` estruturadas — sem isto, esse texto
-    // (já extraído pelo parser) nunca seria salvo em lugar nenhum e o
-    // trabalho pedagógico da correção se perderia.
-    await admin.from("question_answers").insert({
-      question_id: questionId,
-      question_part_id: null,
-      expected_answer: draft.correctionProse,
-      correction_guidance: null,
-    });
-  }
+  const answers =
+    draft.answers.length > 0
+      ? draft.answers.map((answer) => ({
+          item_label: answer.itemLabel ?? null,
+          expected_answer: answer.expectedAnswer,
+          correction_guidance: answer.correctionGuidance,
+        }))
+      : draft.correctionProse
+        ? // Documentos que só têm correção em prosa livre (sem "Comando X"/
+          // "Item X" por item) não geram `answers` estruturadas — sem isto,
+          // esse texto (já extraído pelo parser) nunca seria salvo em lugar
+          // nenhum e o trabalho pedagógico da correção se perderia.
+          [{ item_label: null, expected_answer: draft.correctionProse, correction_guidance: null }]
+        : [];
 
-  if (draft.rubrics.length > 0) {
-    await admin.from("question_rubrics").insert(
-      draft.rubrics.map((rubric, index) => ({
-        question_id: questionId,
-        question_part_id: rubric.itemLabel ? (partIdByLabel.get(rubric.itemLabel) ?? null) : null,
-        level: rubric.level,
-        points: rubric.points,
-        criteria: rubric.criteria,
-        order_index: index,
-      })),
-    );
-  }
+  const rubrics = draft.rubrics.map((rubric, index) => ({
+    item_label: rubric.itemLabel ?? null,
+    level: rubric.level,
+    points: rubric.points,
+    criteria: rubric.criteria,
+    order_index: index,
+  }));
 
+  // Assets sobem pro Storage ANTES da RPC (Storage não participa da
+  // transação SQL) — se a RPC falhar depois, esses arquivos já enviados são
+  // removidos explicitamente (compensação manual) pra não ficarem órfãos.
   const assetIdByRelId = new Map<string, string>();
+  const uploadedAssetPaths: string[] = [];
+  const assets: {
+    id: string;
+    storage_path: string;
+    asset_type: string;
+    original_name: string;
+    mime_type: string;
+    order_index: number;
+  }[] = [];
   for (const asset of media) {
     const assetId = randomUUID();
     const assetPath = questionAssetStoragePath(questionId, assetId, asset.fileName);
@@ -294,54 +254,78 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     });
     if (assetUploadError) continue;
 
-    await admin.from("question_assets").insert({
+    uploadedAssetPaths.push(assetPath);
+    assets.push({
       id: assetId,
-      question_id: questionId,
       storage_path: assetPath,
       asset_type: "image",
       original_name: asset.fileName,
       mime_type: asset.mimeType,
-      order_index: assetIdByRelId.size,
+      order_index: assets.length,
     });
     assetIdByRelId.set(asset.relId, assetId);
   }
 
-  if (draft.blocks.length > 0) {
-    const blockRows = draft.blocks
-      .map((block) => {
-        let content: Record<string, unknown>;
-        if (block.blockType === "image" && "relId" in block.content) {
-          const assetId = assetIdByRelId.get(block.content.relId);
-          if (!assetId) return null;
-          content = { assetId };
-        } else {
-          content = block.content as unknown as Record<string, unknown>;
-        }
-        return {
-          question_id: questionId,
-          section: block.section,
-          block_type: block.blockType,
-          content,
-          order_index: block.orderIndex,
-        };
-      })
-      .filter((b): b is NonNullable<typeof b> => b !== null);
-
-    if (blockRows.length > 0) await admin.from("question_document_blocks").insert(blockRows);
-  }
-
-  const warningRows = buildWarnings(importId, draft.warnings, extraWarnings);
-  if (warningRows.length > 0) await admin.from("question_import_warnings").insert(warningRows);
-
-  await admin
-    .from("question_imports")
-    .update({
-      status: "needs_review",
-      question_id: questionId,
-      extracted_code: draft.code.value,
-      processed_at: new Date().toISOString(),
+  const blocks = draft.blocks
+    .map((block) => {
+      let content: Record<string, unknown>;
+      if (block.blockType === "image" && "relId" in block.content) {
+        const assetId = assetIdByRelId.get(block.content.relId);
+        if (!assetId) return null;
+        content = { assetId };
+      } else {
+        content = block.content as unknown as Record<string, unknown>;
+      }
+      return { section: block.section, block_type: block.blockType, content, order_index: block.orderIndex };
     })
-    .eq("id", importId);
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+
+  const warningRows = buildWarnings(importId, draft.warnings, extraWarnings).map((w) => ({
+    severity: w.severity,
+    field: w.field,
+    message: w.message,
+  }));
+
+  // import_question_draft insere questão + partes + respostas + rubrica +
+  // habilidades BNCC + assets + blocos + avisos numa única transação —
+  // tudo ou nada, sem o risco de ficar um rascunho pela metade que a
+  // versão anterior (inserts sequenciais sem checar erro) podia deixar.
+  const { error: rpcError } = await admin.rpc("import_question_draft", {
+    p_question_id: questionId,
+    p_import_id: importId,
+    p_statement: draft.statementCandidates[0] ?? "",
+    p_question_type: "discursive",
+    p_difficulty: draft.difficultyRaw.value ?? "medium",
+    p_code: draft.code.value,
+    p_subject_id: subjectId,
+    p_grade_id: gradeId,
+    p_knowledge_objects: draft.knowledgeObjects.length > 0 ? draft.knowledgeObjects : null,
+    p_academic_period_id: academicPeriodId,
+    p_book_name: draft.bookName.value,
+    p_book_unit: draft.bookUnit.value,
+    p_bloom_primary_level: bloomPrimary,
+    p_bloom_justification: draft.bloomJustification.value,
+    p_pedagogical_note: draft.pedagogicalNote.value,
+    p_original_file_path: storagePath,
+    p_bncc_skill_ids: matchedBnccIds.length > 0 ? matchedBnccIds : null,
+    p_parts: parts,
+    p_answers: answers,
+    p_rubrics: rubrics,
+    p_assets: assets,
+    p_blocks: blocks,
+    p_warnings: warningRows,
+  });
+
+  if (rpcError) {
+    if (uploadedAssetPaths.length > 0) {
+      await admin.storage.from("private").remove(uploadedAssetPaths);
+    }
+    await admin
+      .from("question_imports")
+      .update({ status: "failed", error_message: rpcError.message, processed_at: new Date().toISOString() })
+      .eq("id", importId);
+    return { error: null, importId };
+  }
 
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/importacoes`);

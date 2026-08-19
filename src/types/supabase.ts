@@ -451,6 +451,7 @@ export type Database = {
           original_file_path: string | null;
           import_id: string | null;
           access_type: ContentAccessType;
+          title: string | null;
         };
         Insert: {
           id?: string;
@@ -479,6 +480,7 @@ export type Database = {
           original_file_path?: string | null;
           import_id?: string | null;
           access_type?: ContentAccessType;
+          title?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["questions"]["Insert"]>;
         Relationships: [];
@@ -720,6 +722,16 @@ export type Database = {
         Row: { id: string; exam_id: string; question_id: string; order_index: number };
         Insert: { id?: string; exam_id: string; question_id: string; order_index?: number };
         Update: Partial<{ id: string; exam_id: string; question_id: string; order_index: number }>;
+        Relationships: [];
+      };
+
+      // Log append-only de gerações de prova, usado só pra calcular a cota
+      // mensal (getExamGenerationQuota) — apagar uma prova não libera cota,
+      // diferente de contar linhas vivas em generated_exams.
+      exam_generation_events: {
+        Row: { id: string; teacher_id: string; exam_id: string | null; created_at: string };
+        Insert: { id?: string; teacher_id: string; exam_id?: string | null; created_at?: string };
+        Update: Partial<{ id: string; teacher_id: string; exam_id: string | null; created_at: string }>;
         Relationships: [];
       };
 
@@ -1095,6 +1107,56 @@ export type Database = {
       is_admin: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      create_generated_exam: {
+        Args: {
+          p_title: string;
+          p_theme_id: string;
+          p_school_name: string | null;
+          p_instructions: string | null;
+          p_show_answer_key: boolean;
+          p_question_ids: string[];
+        };
+        Returns: string;
+      };
+      update_generated_exam: {
+        Args: {
+          p_exam_id: string;
+          p_title: string;
+          p_school_name: string | null;
+          p_instructions: string | null;
+          p_show_answer_key: boolean;
+          p_question_ids: string[];
+        };
+        Returns: string;
+      };
+      import_question_draft: {
+        Args: {
+          p_question_id: string;
+          p_import_id: string;
+          p_statement: string;
+          p_question_type: QuestionType;
+          p_difficulty: ContentDifficulty;
+          p_code: string | null;
+          p_subject_id: string | null;
+          p_grade_id: string | null;
+          p_knowledge_objects: string[] | null;
+          p_academic_period_id: string | null;
+          p_book_name: string | null;
+          p_book_unit: string | null;
+          p_bloom_primary_level: BloomTaxonomyLevel | null;
+          p_bloom_justification: string | null;
+          p_pedagogical_note: string | null;
+          p_original_file_path: string | null;
+          p_bncc_skill_ids: string[] | null;
+          p_parts: unknown;
+          p_answers: unknown;
+          p_rubrics: unknown;
+          p_assets: unknown;
+          p_blocks: unknown;
+          p_warnings: unknown;
+        };
+        Returns: string;
       };
     };
     Enums: {

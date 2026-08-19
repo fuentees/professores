@@ -19,9 +19,10 @@ export async function hasSubscriberAccess(
 
   const subscriptionQuery = supabase
     .from("subscriptions")
-    .select("id")
+    .select("id, plans!inner(status)")
     .eq("teacher_id", teacherId)
     .eq("status", "active")
+    .eq("plans.status", "active")
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .limit(1)
     .maybeSingle();

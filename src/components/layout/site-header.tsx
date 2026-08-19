@@ -37,28 +37,30 @@ export async function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-2">
           <MobileNav links={MOBILE_NAV_LINKS} />
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <GraduationCap className="h-5 w-5" />
-            <span>Portal do Professor</span>
+          <Link href="/" className="flex items-center gap-2.5 font-semibold">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-interactive text-primary-foreground shadow-sm">
+              <GraduationCap className="h-4.5 w-4.5" strokeWidth={2} />
+            </span>
+            <span className="text-base tracking-tight">Portal do Professor</span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-6 text-sm text-muted-foreground lg:flex">
-          <Link href="/" className="hover:text-foreground">
+        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
+          <Link href="/" className="transition-colors hover:text-primary">
             Início
           </Link>
           <NavMenu label="Explorar" links={EXPLORAR_LINKS} />
-          <Link href="/objetos" className="hover:text-foreground">
+          <Link href="/objetos" className="transition-colors hover:text-primary">
             Recursos interativos
           </Link>
-          <Link href="/cursos" className="hover:text-foreground">
+          <Link href="/cursos" className="transition-colors hover:text-primary">
             Cursos
           </Link>
-          <Link href="/bncc" className="hover:text-foreground">
+          <Link href="/bncc" className="transition-colors hover:text-primary">
             BNCC
           </Link>
           <NavMenu label="Comunidade" links={COMUNIDADE_LINKS} />
-          <Link href="/planos" className="hover:text-foreground">
+          <Link href="/planos" className="transition-colors hover:text-primary">
             Planos
           </Link>
         </nav>

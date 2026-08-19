@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { httpUrlSchema } from "@/lib/validations/url";
 
 export const courseSchema = z.object({
   title: z.string().trim().min(3, "Informe um título com pelo menos 3 caracteres."),
@@ -15,7 +16,7 @@ export const lessonDetailSchema = z.object({
   title: z.string().trim().min(2, "Informe um título."),
   description: z.string().trim().optional(),
   body: z.string().trim().optional(),
-  videoUrl: z.string().trim().optional(),
+  videoUrl: httpUrlSchema,
   durationMinutes: z.coerce.number().int().optional(),
   status: z.enum(["active", "inactive"]),
 });

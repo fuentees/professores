@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
-import { hasSubscriberAccess } from "@/lib/access/subscriber-access";
+import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
 import { MarkCompleteButton } from "@/components/courses/mark-complete-button";
 import { LessonFileDownloadButton } from "@/components/courses/lesson-file-download-button";
 import { Button } from "@/components/ui/button";
@@ -36,10 +36,14 @@ export default async function LessonPage({
   if (!lesson) notFound();
 
   const course = lesson.module?.course;
-  let canSeeContent = true;
-  if (course && course.access_type === "subscriber_only") {
-    canSeeContent = await hasSubscriberAccess(supabase, profile.id, { courseId: course.id });
-  }
+  const canSeeContent = course
+    ? await canAccessResource(
+        supabase,
+        profile,
+        { accessType: course.access_type as ResourceAccessType },
+        { courseId: course.id },
+      )
+    : true;
 
   const [{ data: files }, { data: progress }] = await Promise.all([
     supabase.from("lesson_files").select("id, name").eq("lesson_id", lessonId).order("order_index"),

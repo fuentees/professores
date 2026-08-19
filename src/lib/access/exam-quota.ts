@@ -42,8 +42,11 @@ export async function getExamGenerationQuota(
     limit = plan ? plan.exam_generation_monthly_limit : FREE_TIER_EXAM_LIMIT;
   }
 
+  // Conta o log append-only de gerações, não linhas vivas em
+  // generated_exams — apagar uma prova não pode devolver cota (ver
+  // exam_generation_events na migration 20260818120000).
   const { count } = await supabase
-    .from("generated_exams")
+    .from("exam_generation_events")
     .select("id", { count: "exact", head: true })
     .eq("teacher_id", teacherId)
     .gte("created_at", startOfCurrentMonthIso());

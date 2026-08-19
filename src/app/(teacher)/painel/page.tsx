@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ClipboardCheck, Download, GraduationCap, Heart, LayoutGrid, SquareStack } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +7,7 @@ import { MaterialCard, type MaterialCardData } from "@/components/materials/mate
 import { SectionHeader } from "@/components/common/section-header";
 import { fetchContentCards } from "@/lib/queries/content-cards";
 import { isRecentlyCreated } from "@/lib/dates";
+import type { LucideIcon } from "lucide-react";
 
 type FeaturedRow = {
   slug: string;
@@ -142,21 +145,58 @@ export default async function PainelPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: "Materiais favoritados", value: favoritesCount ?? 0 },
-          { label: "Cursos em andamento", value: coursesInProgress },
-          { label: "Downloads recentes", value: downloadsCount ?? 0 },
-          { label: "Provas geradas", value: examsCount ?? 0 },
-        ].map((item) => (
+        {(
+          [
+            { label: "Materiais favoritados", value: favoritesCount ?? 0, icon: Heart, tint: "text-primary bg-primary/10" },
+            { label: "Cursos em andamento", value: coursesInProgress, icon: GraduationCap, tint: "text-primary bg-primary/10" },
+            { label: "Downloads recentes", value: downloadsCount ?? 0, icon: Download, tint: "text-muted-foreground bg-muted" },
+            {
+              label: "Provas geradas",
+              value: examsCount ?? 0,
+              icon: ClipboardCheck,
+              tint: "text-assessment bg-assessment-soft",
+            },
+          ] satisfies { label: string; value: number; icon: LucideIcon; tint: string }[]
+        ).map((item) => (
           <Card key={item.label}>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {item.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-2xl font-semibold">{item.value}</CardContent>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${item.tint}`}>
+                <item.icon className="h-5 w-5" strokeWidth={1.75} />
+              </div>
+              <div>
+                <p className="text-2xl font-semibold tracking-tight">{item.value}</p>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+              </div>
+            </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/painel/banco-de-questoes"
+          className="group flex items-center gap-4 rounded-lg border p-5 transition-shadow hover:shadow-md"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-assessment-soft text-assessment">
+            <SquareStack className="h-6 w-6" strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="font-semibold tracking-tight group-hover:underline">Banco de questões</p>
+            <p className="text-sm text-muted-foreground">Monte provas com questões prontas por habilidade BNCC.</p>
+          </div>
+        </Link>
+        <Link
+          href="/objetos"
+          className="group flex items-center gap-4 rounded-lg border p-5 transition-shadow hover:shadow-md"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-interactive-soft text-interactive">
+            <LayoutGrid className="h-6 w-6" strokeWidth={1.5} />
+          </div>
+          <div>
+            <p className="font-semibold tracking-tight group-hover:underline">Recursos interativos</p>
+            <p className="text-sm text-muted-foreground">Jogos e simulações prontos para usar em aula.</p>
+          </div>
+        </Link>
       </div>
 
       {recommendations.length > 0 && (

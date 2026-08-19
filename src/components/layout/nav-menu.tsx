@@ -19,7 +19,7 @@ export function NavMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex items-center gap-1 text-sm text-muted-foreground outline-none hover:text-foreground data-popup-open:text-foreground"
+        className="flex items-center gap-1 text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-primary data-popup-open:text-primary"
       >
         {label}
         <ChevronDown className="h-3.5 w-3.5" />

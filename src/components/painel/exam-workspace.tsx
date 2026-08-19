@@ -18,6 +18,8 @@ import {
   updateGeneratedExam,
   type ExamQuestion,
 } from "@/actions/exam-generator";
+import { QUESTION_TYPE_LABELS } from "@/lib/labels";
+import type { QuestionType } from "@/types/supabase";
 
 const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
   easy: "Fácil",
@@ -47,7 +49,7 @@ export function ExamWorkspace({
   mode,
   examId,
 }: {
-  filters: { themeId: string; subthemeId?: string; includeMultipleChoice: boolean; includeEssay: boolean };
+  filters: { themeId: string; subthemeId?: string; questionTypes: QuestionType[] };
   initialQuestions: ExamQuestion[];
   initialRequested?: DifficultyBuckets;
   initialFulfilled?: DifficultyBuckets;
@@ -95,8 +97,7 @@ export function ExamWorkspace({
       easyCount: counts.easy,
       mediumCount: counts.medium,
       hardCount: counts.hard,
-      includeMultipleChoice: filters.includeMultipleChoice,
-      includeEssay: filters.includeEssay,
+      questionTypes: filters.questionTypes,
     });
     setReshuffling(false);
 
@@ -195,7 +196,9 @@ export function ExamWorkspace({
                   ))}
                 </ul>
               ) : (
-                <p className="pl-4 text-sm text-muted-foreground">Questão dissertativa (resposta aberta).</p>
+                <p className="pl-4 text-sm text-muted-foreground">
+                  {QUESTION_TYPE_LABELS[question.questionType] ?? "Questão"} (resposta aberta).
+                </p>
               )}
             </CardContent>
           </Card>
