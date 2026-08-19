@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { MemoryConfig } from "@/lib/validations/interactive-activity";
 
 type Card2 = { cardId: string; pairId: string; content: string };
@@ -17,16 +16,25 @@ function shuffle<T>(items: T[]): T[] {
   return arr;
 }
 
-function buildDeck(config: MemoryConfig): Card2[] {
-  const cards: Card2[] = config.pairs.flatMap((pair) => [
+function unshuffledDeck(config: MemoryConfig): Card2[] {
+  return config.pairs.flatMap((pair) => [
     { cardId: `${pair.id}-a`, pairId: pair.id, content: pair.a },
     { cardId: `${pair.id}-b`, pairId: pair.id, content: pair.b },
   ]);
-  return shuffle(cards);
+}
+
+function buildDeck(config: MemoryConfig): Card2[] {
+  return shuffle(unshuffledDeck(config));
 }
 
 export function MemoryPlayer({ config }: { config: MemoryConfig }) {
-  const [deck, setDeck] = useState(() => buildDeck(config));
+  // Mesmo cuidado de MatchingPlayer/OrderingPlayer: baralho começa na
+  // ordem determinística (igual servidor/cliente) e só embaralha depois
+  // de montar.
+  const [deck, setDeck] = useState(() => unshuffledDeck(config));
+  // Só no cliente, de propósito (ver comentário em matching-player.tsx).
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setDeck(buildDeck(config)), [config]);
   const [flipped, setFlipped] = useState<string[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<Set<string>>(new Set());
   const [moves, setMoves] = useState(0);
@@ -63,42 +71,41 @@ export function MemoryPlayer({ config }: { config: MemoryConfig }) {
   }
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 py-6">
-        <p className="text-xs text-muted-foreground">Jogadas: {moves}</p>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-          {deck.map((card) => {
-            const isFaceUp = flipped.includes(card.cardId) || matchedPairs.has(card.pairId);
-            return (
-              <button
-                key={card.cardId}
-                type="button"
-                onClick={() => handleFlip(card)}
-                disabled={matchedPairs.has(card.pairId)}
-                className={`flex aspect-square items-center justify-center rounded-lg border p-2 text-center text-xs font-medium transition-colors ${
-                  matchedPairs.has(card.pairId)
-                    ? "border-emerald-600/50 bg-emerald-600/5 text-emerald-700"
-                    : isFaceUp
-                      ? "border-primary bg-primary/5"
-                      : "bg-muted hover:bg-accent"
-                }`}
-              >
-                {isFaceUp ? card.content : "?"}
-              </button>
-            );
-          })}
-        </div>
+    <div className="flex flex-col gap-4 p-5 sm:p-6">
+      <p className="text-xs text-muted-foreground">Jogadas: {moves}</p>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        {deck.map((card) => {
+          const isFaceUp = flipped.includes(card.cardId) || matchedPairs.has(card.pairId);
+          const isDone = matchedPairs.has(card.pairId);
+          return (
+            <button
+              key={card.cardId}
+              type="button"
+              onClick={() => handleFlip(card)}
+              disabled={isDone}
+              className={`flex aspect-square items-center justify-center rounded-xl border-2 p-2 text-center text-sm font-semibold transition-all ${
+                isDone
+                  ? "border-emerald-600/50 bg-emerald-600/5 text-emerald-700"
+                  : isFaceUp
+                    ? "border-interactive bg-interactive-soft text-interactive"
+                    : "border-transparent bg-interactive text-white shadow-sm hover:brightness-110"
+              }`}
+            >
+              {isFaceUp ? card.content : "?"}
+            </button>
+          );
+        })}
+      </div>
 
-        {isComplete && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-emerald-600">Concluído em {moves} jogadas!</p>
-            <Button variant="outline" onClick={restart}>
-              <RotateCcw className="h-4 w-4" />
-              Refazer
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {isComplete && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-emerald-600">Concluído em {moves} jogadas!</p>
+          <Button variant="outline" onClick={restart}>
+            <RotateCcw className="h-4 w-4" />
+            Refazer
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

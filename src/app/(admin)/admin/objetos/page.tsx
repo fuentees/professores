@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { InteractiveTypeBadge } from "@/components/interactive/interactive-type-badge";
+import type { LearningActivityType } from "@/lib/validations/interactive-activity";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -24,8 +26,9 @@ export default async function ObjetosPage() {
   const supabase = await createClient();
   const { data: objects } = await supabase
     .from("learning_objects")
-    .select("id, title, object_type, status")
-    .order("created_at", { ascending: false });
+    .select("id, title, object_type, status, activity_type")
+    .order("created_at", { ascending: false })
+    .returns<{ id: string; title: string; object_type: string; status: string; activity_type: LearningActivityType | null }[]>();
 
   return (
     <div className="space-y-6">
@@ -66,7 +69,13 @@ export default async function ObjetosPage() {
             {objects?.map((obj) => (
               <TableRow key={obj.id}>
                 <TableCell className="font-medium">{obj.title}</TableCell>
-                <TableCell className="text-muted-foreground">{obj.object_type}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {obj.activity_type ? (
+                    <InteractiveTypeBadge activityType={obj.activity_type} />
+                  ) : (
+                    obj.object_type
+                  )}
+                </TableCell>
                 <TableCell>
                   <Badge variant={obj.status === "published" ? "default" : "secondary"}>
                     {STATUS_LABELS[obj.status]}

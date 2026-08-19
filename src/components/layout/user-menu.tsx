@@ -30,7 +30,7 @@ export function UserMenu({ profile }: { profile: CurrentProfile }) {
         render={
           <Button variant="ghost" className="gap-2 px-2">
             <Avatar className="h-8 w-8">
-              <AvatarFallback>
+              <AvatarFallback className="bg-primary/10 font-medium text-primary">
                 {getInitials(profile.full_name || profile.email)}
               </AvatarFallback>
             </Avatar>

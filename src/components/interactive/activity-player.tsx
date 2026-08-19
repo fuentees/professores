@@ -1,4 +1,5 @@
 import type { LearningActivityType } from "@/lib/validations/interactive-activity";
+import { GameShell } from "@/components/interactive/game-shell";
 import { QuizPlayer } from "./quiz-player";
 import { TrueFalsePlayer } from "./true-false-player";
 import { MatchingPlayer } from "./matching-player";
@@ -8,14 +9,7 @@ import { OrderingPlayer } from "./ordering-player";
 import { FlashcardsPlayer } from "./flashcards-player";
 import { SIMULATION_REGISTRY } from "./simulations/registry";
 
-/** Config já deve ter passado por `interactiveActivitySchema.safeParse` antes de chegar aqui. */
-export function ActivityPlayer({
-  activityType,
-  config,
-}: {
-  activityType: LearningActivityType;
-  config: unknown;
-}) {
+function renderPlayer(activityType: LearningActivityType, config: unknown): React.ReactNode {
   switch (activityType) {
     case "quiz":
       return <QuizPlayer config={config as Parameters<typeof QuizPlayer>[0]["config"]} />;
@@ -40,4 +34,23 @@ export function ActivityPlayer({
     default:
       return null;
   }
+}
+
+/** Config já deve ter passado por `interactiveActivitySchema.safeParse` antes de chegar aqui. */
+export function ActivityPlayer({
+  activityType,
+  config,
+  title,
+}: {
+  activityType: LearningActivityType;
+  config: unknown;
+  title: string;
+}) {
+  const player = renderPlayer(activityType, config);
+  if (!player) return null;
+  return (
+    <GameShell activityType={activityType} title={title}>
+      {player}
+    </GameShell>
+  );
 }

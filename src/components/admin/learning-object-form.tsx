@@ -24,6 +24,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CONTENT_ACCESS_TYPE_LABELS, CONTENT_STATUS_LABELS, LEARNING_ACTIVITY_TYPE_LABELS } from "@/lib/labels";
 import { InteractiveActivityBuilder, emptyConfigFor } from "@/components/admin/interactive-activity-builder";
 import { ActivityPlayer } from "@/components/interactive/activity-player";
+import { InteractiveTypeBadge } from "@/components/interactive/interactive-type-badge";
 
 const OBJECT_TYPES = [
   "Jogo",
@@ -211,6 +212,11 @@ export function LearningObjectForm({
                 ))}
               </SelectContent>
             </Select>
+            {mode !== "resource" && (
+              <p className="text-xs text-muted-foreground">
+                Categoria exibida pro professor: <InteractiveTypeBadge activityType={mode} className="ml-1 align-middle" />
+              </p>
+            )}
           </div>
 
           {mode === "resource" ? (
@@ -238,7 +244,11 @@ export function LearningObjectForm({
 
               {showPreview &&
                 (activityPreviewParsed?.success ? (
-                  <ActivityPlayer activityType={mode} config={activityPreviewParsed.data.config} />
+                  <ActivityPlayer
+                    activityType={mode}
+                    config={activityPreviewParsed.data.config}
+                    title={form.watch("title") || "Pré-visualização"}
+                  />
                 ) : (
                   <p className="text-sm text-destructive">
                     {activityPreviewParsed?.error.issues[0]?.message ?? "Preencha a atividade para pré-visualizar."}

@@ -35,6 +35,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -47,6 +48,12 @@
   --color-assessment-soft: var(--assessment-soft);
   --color-highlight: var(--highlight);
   --color-highlight-soft: var(--highlight-soft);
+  --color-simulation: var(--simulation);
+  --color-simulation-soft: var(--simulation-soft);
+  --color-flashcard: var(--flashcard);
+  --color-flashcard-soft: var(--flashcard-soft);
+  --color-activity: var(--activity);
+  --color-activity-soft: var(--activity-soft);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -57,95 +64,117 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Identidade coral/creme/marinho — ver plano de UX+identidade visual.
+     background (creme) e card (branco) agora são deliberadamente
+     diferentes, pra dar profundidade real aos cards sobre o fundo. */
+  --background: oklch(0.985 0.012 70);
+  --foreground: oklch(0.22 0.045 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.22 0.045 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.52 0.19 264);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0.01 264);
-  --secondary-foreground: oklch(0.28 0.06 264);
-  --muted: oklch(0.97 0.008 264);
-  --muted-foreground: oklch(0.5 0.02 264);
-  --accent: oklch(0.94 0.03 264);
-  --accent-foreground: oklch(0.3 0.08 264);
+  --popover-foreground: oklch(0.22 0.045 260);
+  --primary: oklch(0.6 0.19 35);
+  --primary-foreground: oklch(0.99 0.005 70);
+  --primary-dark: oklch(0.5 0.18 30);
+  --secondary: oklch(0.95 0.015 60);
+  --secondary-foreground: oklch(0.3 0.04 40);
+  --muted: oklch(0.96 0.012 60);
+  --muted-foreground: oklch(0.48 0.02 55);
+  --accent: oklch(0.93 0.03 40);
+  --accent-foreground: oklch(0.32 0.08 35);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.01 264);
-  --input: oklch(0.9 0.01 264);
-  --ring: oklch(0.65 0.15 264);
-  --chart-1: oklch(0.6 0.19 264);
-  --chart-2: oklch(0.65 0.17 200);
-  --chart-3: oklch(0.7 0.16 150);
-  --chart-4: oklch(0.72 0.17 60);
-  --chart-5: oklch(0.62 0.2 20);
+  --border: oklch(0.9 0.015 55);
+  --input: oklch(0.9 0.015 55);
+  --ring: oklch(0.64 0.17 35);
+  --chart-1: oklch(0.6 0.19 35);
+  --chart-2: oklch(0.55 0.11 195);
+  --chart-3: oklch(0.58 0.13 150);
+  --chart-4: oklch(0.65 0.15 70);
+  --chart-5: oklch(0.55 0.19 293);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.003 264);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.52 0.19 264);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.03 264);
-  --sidebar-accent-foreground: oklch(0.3 0.08 264);
-  --sidebar-border: oklch(0.9 0.01 264);
-  --sidebar-ring: oklch(0.65 0.15 264);
+  --sidebar: oklch(0.97 0.014 60);
+  --sidebar-foreground: oklch(0.22 0.045 260);
+  --sidebar-primary: oklch(0.6 0.19 35);
+  --sidebar-primary-foreground: oklch(0.99 0.005 70);
+  --sidebar-accent: oklch(0.93 0.03 40);
+  --sidebar-accent-foreground: oklch(0.32 0.08 35);
+  --sidebar-border: oklch(0.9 0.015 55);
+  --sidebar-ring: oklch(0.64 0.17 35);
 
-  /* Tokens semânticos por área de conteúdo — mesmo padrão de duas camadas
-     do resto do arquivo (base saturado pra texto/ícone, "-soft" claro pra
-     fundo de badge/card). Uso restrito e curado: recursos interativos,
-     habilidades BNCC, provas/avaliação e destaques editoriais — não um
-     mapeamento de cor por disciplina em todo o app. */
-  --interactive: oklch(0.55 0.19 320);
-  --interactive-soft: oklch(0.95 0.035 320);
-  --bncc: oklch(0.5 0.13 165);
-  --bncc-soft: oklch(0.95 0.03 165);
-  --assessment: oklch(0.55 0.17 35);
-  --assessment-soft: oklch(0.95 0.035 35);
-  --highlight: oklch(0.55 0.15 85);
-  --highlight-soft: oklch(0.95 0.05 85);
+  /* Tokens semânticos por área/categoria de conteúdo — mesmo padrão de
+     duas camadas do resto do arquivo (base saturado pra texto/ícone,
+     "-soft" claro pra fundo de badge/card). Mapeamento por categoria:
+     Jogos/Interativos = violeta, BNCC/Simulações = turquesa,
+     Avaliações/Banco de questões = âmbar, Cursos/geral = coral (primary). */
+  --interactive: oklch(0.55 0.19 293);
+  --interactive-soft: oklch(0.95 0.035 293);
+  --bncc: oklch(0.55 0.11 195);
+  --bncc-soft: oklch(0.95 0.03 195);
+  --assessment: oklch(0.65 0.15 70);
+  --assessment-soft: oklch(0.95 0.04 70);
+  --highlight: oklch(0.62 0.14 95);
+  --highlight-soft: oklch(0.95 0.045 95);
+
+  /* Categorias do módulo de recursos interativos (ver src/lib/interactive/
+     categories.ts). Quiz reaproveita --primary, Jogo reaproveita
+     --interactive, Simulação reaproveita o mesmo turquesa de --bncc. */
+  --simulation: oklch(0.55 0.11 195);
+  --simulation-soft: oklch(0.95 0.03 195);
+  --flashcard: oklch(0.58 0.17 15);
+  --flashcard-soft: oklch(0.95 0.04 15);
+  --activity: oklch(0.58 0.13 150);
+  --activity-soft: oklch(0.95 0.035 150);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.72 0.16 264);
-  --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.28 0.03 264);
-  --secondary-foreground: oklch(0.95 0.01 264);
-  --muted: oklch(0.269 0.015 264);
-  --muted-foreground: oklch(0.72 0.02 264);
-  --accent: oklch(0.32 0.05 264);
-  --accent-foreground: oklch(0.95 0.02 264);
+  --background: oklch(0.18 0.025 260);
+  --foreground: oklch(0.96 0.012 65);
+  --card: oklch(0.23 0.028 260);
+  --card-foreground: oklch(0.96 0.012 65);
+  --popover: oklch(0.23 0.028 260);
+  --popover-foreground: oklch(0.96 0.012 65);
+  --primary: oklch(0.68 0.18 35);
+  --primary-foreground: oklch(0.16 0.02 30);
+  --primary-dark: oklch(0.58 0.18 30);
+  --secondary: oklch(0.28 0.03 260);
+  --secondary-foreground: oklch(0.92 0.015 65);
+  --muted: oklch(0.26 0.025 260);
+  --muted-foreground: oklch(0.68 0.02 65);
+  --accent: oklch(0.32 0.05 35);
+  --accent-foreground: oklch(0.92 0.03 45);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.18 264);
-  --chart-1: oklch(0.72 0.16 264);
-  --chart-2: oklch(0.75 0.14 200);
-  --chart-3: oklch(0.78 0.14 150);
-  --chart-4: oklch(0.8 0.15 60);
-  --chart-5: oklch(0.72 0.18 20);
-  --sidebar: oklch(0.205 0.01 264);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.6 0.2 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.32 0.05 264);
-  --sidebar-accent-foreground: oklch(0.95 0.02 264);
+  --ring: oklch(0.65 0.17 35);
+  --chart-1: oklch(0.68 0.18 35);
+  --chart-2: oklch(0.7 0.11 195);
+  --chart-3: oklch(0.72 0.13 150);
+  --chart-4: oklch(0.76 0.14 70);
+  --chart-5: oklch(0.72 0.16 293);
+  --sidebar: oklch(0.2 0.028 260);
+  --sidebar-foreground: oklch(0.96 0.012 65);
+  --sidebar-primary: oklch(0.68 0.18 35);
+  --sidebar-primary-foreground: oklch(0.16 0.02 30);
+  --sidebar-accent: oklch(0.32 0.05 35);
+  --sidebar-accent-foreground: oklch(0.92 0.03 45);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.6 0.18 264);
+  --sidebar-ring: oklch(0.65 0.17 35);
 
-  --interactive: oklch(0.75 0.16 320);
-  --interactive-soft: oklch(0.3 0.06 320);
-  --bncc: oklch(0.72 0.13 165);
-  --bncc-soft: oklch(0.28 0.05 165);
-  --assessment: oklch(0.74 0.15 35);
-  --assessment-soft: oklch(0.3 0.06 35);
-  --highlight: oklch(0.78 0.13 85);
-  --highlight-soft: oklch(0.3 0.06 85);
+  --interactive: oklch(0.72 0.16 293);
+  --interactive-soft: oklch(0.3 0.06 293);
+  --bncc: oklch(0.7 0.11 195);
+  --bncc-soft: oklch(0.28 0.05 195);
+  --assessment: oklch(0.76 0.14 70);
+  --assessment-soft: oklch(0.3 0.055 70);
+  --highlight: oklch(0.78 0.13 95);
+  --highlight-soft: oklch(0.3 0.05 95);
+
+  --simulation: oklch(0.7 0.11 195);
+  --simulation-soft: oklch(0.28 0.05 195);
+  --flashcard: oklch(0.72 0.15 15);
+  --flashcard-soft: oklch(0.3 0.06 15);
+  --activity: oklch(0.72 0.13 150);
+  --activity-soft: oklch(0.29 0.05 150);
 }
 
 @layer base {
