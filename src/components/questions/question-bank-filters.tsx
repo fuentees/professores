@@ -9,9 +9,11 @@ import { FilterChips, type FilterChip } from "@/components/common/filter-chips";
 import { DIFFICULTY_LABELS, BLOOM_TAXONOMY_LABELS, QUESTION_TYPE_LABELS } from "@/lib/labels";
 
 export type FilterOption = { id: string; name: string };
+export type GradeFilterOption = FilterOption & { educationLevelId: string };
 
 export type QuestionBankFiltersData = {
-  grades: FilterOption[];
+  educationLevels: FilterOption[];
+  grades: GradeFilterOption[];
   subjects: FilterOption[];
   academicPeriods: FilterOption[];
 };
@@ -41,6 +43,7 @@ export function QuestionBankFilters({ data }: { data: QuestionBankFiltersData })
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    if (key === "nivel") params.delete("serie");
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -49,12 +52,14 @@ export function QuestionBankFilters({ data }: { data: QuestionBankFiltersData })
     setFilter("q", query || null);
   }
 
+  const educationLevelId = searchParams.get("nivel") ?? "";
   const gradeId = searchParams.get("serie") ?? "";
   const subjectId = searchParams.get("disciplina") ?? "";
   const academicPeriodId = searchParams.get("periodo") ?? "";
   const difficulty = searchParams.get("complexidade") ?? "";
   const bloom = searchParams.get("bloom") ?? "";
   const type = searchParams.get("tipo") ?? "";
+  const availableGrades = educationLevelId ? data.grades.filter((g) => g.educationLevelId === educationLevelId) : data.grades;
 
   function labelOf(list: FilterOption[], id: string): string | undefined {
     return list.find((o) => o.id === id)?.name;
@@ -68,6 +73,7 @@ export function QuestionBankFilters({ data }: { data: QuestionBankFiltersData })
     chips.push({ key, label, href: `${pathname}${qs ? `?${qs}` : ""}` });
   };
   if (searchParams.get("q")) addChip("q", `"${searchParams.get("q")}"`);
+  if (educationLevelId) addChip("nivel", labelOf(data.educationLevels, educationLevelId) ?? educationLevelId);
   if (gradeId) addChip("serie", labelOf(data.grades, gradeId) ?? gradeId);
   if (subjectId) addChip("disciplina", labelOf(data.subjects, subjectId) ?? subjectId);
   if (academicPeriodId) addChip("periodo", labelOf(data.academicPeriods, academicPeriodId) ?? academicPeriodId);
@@ -88,13 +94,26 @@ export function QuestionBankFilters({ data }: { data: QuestionBankFiltersData })
         <Button type="submit">Buscar</Button>
       </form>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        <Select value={educationLevelId || undefined} onValueChange={(v) => setFilter("nivel", (v as string) ?? null)}>
+          <SelectTrigger className="w-full" aria-label="Filtrar por nível de ensino">
+            <SelectValue placeholder="Nível">{(v: string) => labelOf(data.educationLevels, v) ?? "Nível"}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {data.educationLevels.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={gradeId || undefined} onValueChange={(v) => setFilter("serie", (v as string) ?? null)}>
           <SelectTrigger className="w-full" aria-label="Filtrar por série">
             <SelectValue placeholder="Série">{(v: string) => labelOf(data.grades, v) ?? "Série"}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {data.grades.map((o) => (
+            {availableGrades.map((o) => (
               <SelectItem key={o.id} value={o.id}>
                 {o.name}
               </SelectItem>

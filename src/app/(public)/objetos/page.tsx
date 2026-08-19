@@ -13,6 +13,7 @@ import {
   type InteractiveCategory,
 } from "@/lib/interactive/categories";
 import type { LearningActivityType } from "@/lib/validations/interactive-activity";
+import { sortGradesByLevel } from "@/lib/pedagogical-order";
 
 type ObjectRow = {
   slug: string;
@@ -31,6 +32,7 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim() : "";
   const disciplina = typeof params.disciplina === "string" ? params.disciplina : "";
+  const nivel = typeof params.nivel === "string" ? params.nivel : "";
   const serie = typeof params.serie === "string" ? params.serie : "";
   const categoriaParam = typeof params.categoria === "string" ? params.categoria : "";
   const categoria = INTERACTIVE_CATEGORIES.includes(categoriaParam as InteractiveCategory)
@@ -39,7 +41,7 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
 
   const supabase = await createClient();
 
-  const [{ data: objects }, { data: subjects }, { data: grades }] = await Promise.all([
+  const [{ data: objects }, { data: subjects }, { data: educationLevels }, { data: grades }] = await Promise.all([
     supabase
       .from("learning_objects")
       .select(
@@ -49,8 +51,16 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
       .order("created_at", { ascending: false })
       .returns<ObjectRow[]>(),
     supabase.from("subjects").select("id, name").order("order_index"),
-    supabase.from("grades").select("id, name").order("order_index"),
+    supabase.from("education_levels").select("id, name, order_index").order("order_index"),
+    supabase.from("grades").select("id, name, education_level_id").order("order_index"),
   ]);
+
+  const educationLevelOptions = (educationLevels ?? []).map((l) => ({ id: l.id, name: l.name, orderIndex: l.order_index }));
+  const gradeOptions = sortGradesByLevel(
+    (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    educationLevelOptions,
+  );
+  const gradeIdsForLevel = nivel ? new Set(gradeOptions.filter((g) => g.educationLevelId === nivel).map((g) => g.id)) : null;
 
   const all = objects ?? [];
   const withActivity = all.filter((o) => o.activity_type !== null);
@@ -69,20 +79,22 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
   const term = q.toLowerCase();
   const matchesQuery = (o: ObjectRow) => !term || o.title.toLowerCase().includes(term) || (o.description ?? "").toLowerCase().includes(term);
   const matchesSubject = (o: ObjectRow) => !disciplina || o.subject_id === disciplina;
+  const matchesLevel = (o: ObjectRow) => !gradeIdsForLevel || (o.grade_id !== null && gradeIdsForLevel.has(o.grade_id));
   const matchesGrade = (o: ObjectRow) => !serie || o.grade_id === serie;
   const matchesCategory = (o: ObjectRow) =>
     !categoria || ACTIVITY_TYPE_CATEGORY[o.activity_type as LearningActivityType] === categoria;
 
   const filtered = withActivity.filter(
-    (o) => matchesQuery(o) && matchesSubject(o) && matchesGrade(o) && matchesCategory(o),
+    (o) => matchesQuery(o) && matchesSubject(o) && matchesLevel(o) && matchesGrade(o) && matchesCategory(o),
   );
 
-  const hasActiveFilters = Boolean(q || disciplina || serie || categoria);
+  const hasActiveFilters = Boolean(q || disciplina || nivel || serie || categoria);
 
   function buildCategoryHref(cat: InteractiveCategory | null): string {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (disciplina) p.set("disciplina", disciplina);
+    if (nivel) p.set("nivel", nivel);
     if (serie) p.set("serie", serie);
     if (cat) p.set("categoria", cat);
     const qs = p.toString();
@@ -97,7 +109,8 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
         <InteractiveCategoryNav active={categoria} buildHref={buildCategoryHref} />
         <InteractiveFilters
           subjects={(subjects ?? []).map((s) => ({ id: s.id, name: s.name }))}
-          grades={(grades ?? []).map((g) => ({ id: g.id, name: g.name }))}
+          educationLevels={educationLevelOptions}
+          grades={gradeOptions}
         />
       </div>
 

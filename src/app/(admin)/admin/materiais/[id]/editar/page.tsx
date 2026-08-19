@@ -5,6 +5,7 @@ import { ContentFileManager } from "@/components/admin/content-file-manager";
 import { BnccSkillManager } from "@/components/admin/bncc-skill-manager";
 import type { ContentInput } from "@/lib/validations/content";
 import type { Database } from "@/types/supabase";
+import { sortGradesByLevel } from "@/lib/pedagogical-order";
 
 type ContentDetailRow = Database["public"]["Tables"]["contents"]["Row"] & {
   content_grades: { grade_id: string }[];
@@ -20,9 +21,10 @@ type ContentDetailRow = Database["public"]["Tables"]["contents"]["Row"] & {
 async function loadOptions(): Promise<ContentFormOptions> {
   const supabase = await createClient();
 
-  const [{ data: grades }, { data: subjects }, { data: units }, { data: themes }, { data: subthemes }, { data: contentTypes }] =
+  const [{ data: educationLevels }, { data: grades }, { data: subjects }, { data: units }, { data: themes }, { data: subthemes }, { data: contentTypes }] =
     await Promise.all([
-      supabase.from("grades").select("id, name").order("order_index"),
+      supabase.from("education_levels").select("id, order_index").order("order_index"),
+      supabase.from("grades").select("id, name, education_level_id").order("order_index"),
       supabase.from("subjects").select("id, name").order("order_index"),
       supabase.from("curriculum_units").select("id, name").order("order_index"),
       supabase.from("themes").select("id, name").order("order_index"),
@@ -30,8 +32,14 @@ async function loadOptions(): Promise<ContentFormOptions> {
       supabase.from("content_types").select("id, name").order("order_index"),
     ]);
 
+  const educationLevelOrders = (educationLevels ?? []).map((l) => ({ id: l.id, orderIndex: l.order_index }));
+  const sortedGrades = sortGradesByLevel(
+    (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    educationLevelOrders,
+  );
+
   return {
-    grades: (grades ?? []).map((g) => ({ id: g.id, label: g.name })),
+    grades: sortedGrades.map((g) => ({ id: g.id, label: g.name })),
     subjects: (subjects ?? []).map((s) => ({ id: s.id, label: s.name })),
     curriculumUnits: (units ?? []).map((u) => ({ id: u.id, label: u.name })),
     themes: (themes ?? []).map((t) => ({ id: t.id, label: t.name })),

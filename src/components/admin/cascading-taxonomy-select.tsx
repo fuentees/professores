@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export type TaxonomyOptions = {
-  grades: { id: string; name: string }[];
+  educationLevels: { id: string; name: string; orderIndex: number }[];
+  grades: { id: string; name: string; educationLevelId: string }[];
   subjects: { id: string; name: string }[];
   gradeSubjects: { gradeId: string; subjectId: string }[];
   curriculumUnits: { id: string; name: string; gradeId: string; subjectId: string }[];
@@ -13,6 +14,7 @@ export type TaxonomyOptions = {
 };
 
 export type TaxonomySelection = {
+  educationLevelId: string;
   gradeId: string;
   subjectId: string;
   curriculumUnitId: string;
@@ -21,6 +23,7 @@ export type TaxonomySelection = {
 };
 
 export const EMPTY_TAXONOMY_SELECTION: TaxonomySelection = {
+  educationLevelId: "",
   gradeId: "",
   subjectId: "",
   curriculumUnitId: "",
@@ -43,6 +46,9 @@ export function CascadingTaxonomySelect({
   value: TaxonomySelection;
   onChange: (value: TaxonomySelection) => void;
 }) {
+  const availableGrades = value.educationLevelId
+    ? options.grades.filter((g) => g.educationLevelId === value.educationLevelId)
+    : options.grades;
   const availableSubjects = value.gradeId
     ? options.subjects.filter((s) =>
         options.gradeSubjects.some((gs) => gs.gradeId === value.gradeId && gs.subjectId === s.id),
@@ -65,18 +71,51 @@ export function CascadingTaxonomySelect({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-2">
+        <Label>Nível de ensino</Label>
+        <Select
+          value={value.educationLevelId}
+          onValueChange={(v) =>
+            set({
+              educationLevelId: (v as string) ?? "",
+              gradeId: "",
+              subjectId: "",
+              curriculumUnitId: "",
+              themeId: "",
+              subthemeId: "",
+            })
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue>{(v: string) => (v ? labelOf(options.educationLevels, v) : "Selecione o nível")}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {options.educationLevels.map((l) => (
+              <SelectItem key={l.id} value={l.id}>
+                {l.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
         <Label>Série/ano</Label>
         <Select
           value={value.gradeId}
           onValueChange={(v) =>
             set({ gradeId: (v as string) ?? "", subjectId: "", curriculumUnitId: "", themeId: "", subthemeId: "" })
           }
+          disabled={!value.educationLevelId}
         >
           <SelectTrigger className="w-full">
-            <SelectValue>{(v: string) => (v ? labelOf(options.grades, v) : "Selecione a série")}</SelectValue>
+            <SelectValue>
+              {(v: string) =>
+                v ? labelOf(options.grades, v) : value.educationLevelId ? "Selecione a série" : "Escolha o nível primeiro"
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {options.grades.map((g) => (
+            {availableGrades.map((g) => (
               <SelectItem key={g.id} value={g.id}>
                 {g.name}
               </SelectItem>

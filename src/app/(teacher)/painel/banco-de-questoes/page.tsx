@@ -5,12 +5,14 @@ import { QuestionCard } from "@/components/questions/question-card";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { SearchX } from "lucide-react";
+import { sortGradesByLevel } from "@/lib/pedagogical-order";
 
 export default async function BancoDeQuestoesPage({
   searchParams,
 }: PageProps<"/painel/banco-de-questoes">) {
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q : undefined;
+  const educationLevelId = typeof params.nivel === "string" ? params.nivel : undefined;
   const gradeId = typeof params.serie === "string" ? params.serie : undefined;
   const subjectId = typeof params.disciplina === "string" ? params.disciplina : undefined;
   const academicPeriodId = typeof params.periodo === "string" ? params.periodo : undefined;
@@ -20,15 +22,36 @@ export default async function BancoDeQuestoesPage({
 
   const supabase = await createClient();
 
-  const [{ data: grades }, { data: subjects }, { data: academicPeriods }, { questions, total }] = await Promise.all([
-    supabase.from("grades").select("id, name").order("order_index"),
-    supabase.from("subjects").select("id, name").order("order_index"),
-    supabase.from("academic_periods").select("id, name").order("order_index"),
-    searchQuestions({ q, gradeId, subjectId, academicPeriodId, difficulty, bloomLevel, questionType }),
-  ]);
+  const [{ data: educationLevels }, { data: grades }, { data: subjects }, { data: academicPeriods }] =
+    await Promise.all([
+      supabase.from("education_levels").select("id, name, order_index").order("order_index"),
+      supabase.from("grades").select("id, name, education_level_id").order("order_index"),
+      supabase.from("subjects").select("id, name").order("order_index"),
+      supabase.from("academic_periods").select("id, name").order("order_index"),
+    ]);
+
+  const educationLevelOptions = (educationLevels ?? []).map((l) => ({ id: l.id, name: l.name, orderIndex: l.order_index }));
+  const gradeOptions = sortGradesByLevel(
+    (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    educationLevelOptions,
+  );
+  const gradeIdsForLevel =
+    educationLevelId && !gradeId ? gradeOptions.filter((g) => g.educationLevelId === educationLevelId).map((g) => g.id) : undefined;
+
+  const { questions, total } = await searchQuestions({
+    q,
+    gradeId,
+    gradeIds: gradeIdsForLevel,
+    subjectId,
+    academicPeriodId,
+    difficulty,
+    bloomLevel,
+    questionType,
+  });
 
   const filtersData: QuestionBankFiltersData = {
-    grades: (grades ?? []).map((g) => ({ id: g.id, name: g.name })),
+    educationLevels: educationLevelOptions,
+    grades: gradeOptions,
     subjects: (subjects ?? []).map((s) => ({ id: s.id, name: s.name })),
     academicPeriods: (academicPeriods ?? []).map((p) => ({ id: p.id, name: p.name })),
   };

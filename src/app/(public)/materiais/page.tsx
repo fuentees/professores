@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { MaterialFilters, type MaterialFiltersData } from "@/components/materials/material-filters";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
 import { isRecentlyCreated } from "@/lib/dates";
+import { sortGradesByLevel } from "@/lib/pedagogical-order";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
@@ -65,7 +66,7 @@ export default async function MateriaisPage({
     { data: subthemes },
     { data: contentTypes },
   ] = await Promise.all([
-    supabase.from("education_levels").select("id, name").order("order_index"),
+    supabase.from("education_levels").select("id, name, order_index").order("order_index"),
     supabase.from("grades").select("id, name, education_level_id").order("order_index"),
     supabase.from("subjects").select("id, name").order("order_index"),
     supabase.from("grade_subjects").select("grade_id, subject_id"),
@@ -225,9 +226,13 @@ export default async function MateriaisPage({
     return `/materiais${qs ? `?${qs}` : ""}`;
   };
 
+  const educationLevelOptions = (educationLevels ?? []).map((l) => ({ id: l.id, name: l.name, orderIndex: l.order_index }));
   const filtersData: MaterialFiltersData = {
-    educationLevels: (educationLevels ?? []).map((l) => ({ id: l.id, name: l.name })),
-    grades: (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    educationLevels: educationLevelOptions,
+    grades: sortGradesByLevel(
+      (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+      educationLevelOptions,
+    ),
     subjects: (subjects ?? []).map((s) => ({ id: s.id, name: s.name })),
     gradeSubjects: (gradeSubjects ?? []).map((gs) => ({ gradeId: gs.grade_id, subjectId: gs.subject_id })),
     curriculumUnits: (curriculumUnits ?? []).map((u) => ({

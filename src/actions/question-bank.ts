@@ -24,6 +24,8 @@ export type QuestionCard = {
 export type QuestionSearchFilters = {
   q?: string;
   gradeId?: string;
+  /** Quando só o nível de ensino é escolhido (sem série específica). */
+  gradeIds?: string[];
   subjectId?: string;
   academicPeriodId?: string;
   difficulty?: string;
@@ -71,6 +73,7 @@ export async function searchQuestions(
     .limit(24);
 
   if (filters.gradeId) query = query.eq("grade_id", filters.gradeId);
+  else if (filters.gradeIds && filters.gradeIds.length > 0) query = query.in("grade_id", filters.gradeIds);
   if (filters.subjectId) query = query.eq("subject_id", filters.subjectId);
   if (filters.academicPeriodId) query = query.eq("academic_period_id", filters.academicPeriodId);
   // Vêm de query params de URL (texto livre do navegador) — cast seguro:

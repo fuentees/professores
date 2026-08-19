@@ -10,18 +10,25 @@ import {
   deleteBnccKnowledgeArea,
   deleteBnccStage,
 } from "@/actions/admin/bncc";
+import { sortGradesByLevel } from "@/lib/pedagogical-order";
 
 export default async function BnccAdminPage() {
   const supabase = await createClient();
 
-  const [{ data: stages }, { data: areas }, { data: components }, { data: skills }, { data: grades }] =
+  const [{ data: stages }, { data: areas }, { data: components }, { data: skills }, { data: educationLevels }, { data: grades }] =
     await Promise.all([
       supabase.from("bncc_stages").select("*").order("order_index"),
       supabase.from("bncc_knowledge_areas").select("*").order("order_index"),
       supabase.from("bncc_components").select("*").order("order_index"),
       supabase.from("bncc_skills").select("*").order("code"),
-      supabase.from("grades").select("id, name").order("order_index"),
+      supabase.from("education_levels").select("id, order_index").order("order_index"),
+      supabase.from("grades").select("id, name, education_level_id").order("order_index"),
     ]);
+
+  const sortedGrades = sortGradesByLevel(
+    (grades ?? []).map((g) => ({ id: g.id, name: g.name, educationLevelId: g.education_level_id })),
+    (educationLevels ?? []).map((l) => ({ id: l.id, orderIndex: l.order_index })),
+  );
 
   return (
     <div className="space-y-6">
@@ -81,7 +88,7 @@ export default async function BnccAdminPage() {
           <BnccSkillsManager
             rows={(skills ?? []) as BnccSkillRow[]}
             components={components ?? []}
-            grades={grades ?? []}
+            grades={sortedGrades}
           />
         </TabsContent>
       </Tabs>
