@@ -55,8 +55,9 @@ export function QuestionDocumentRenderer({ blocks }: { blocks: QuestionDocumentB
                 {group.url ? (
                   <Image src={group.url} alt={group.altText ?? "Imagem da questão"} fill className="object-contain" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
                     <ImageOff className="h-8 w-8" />
+                    <span className="text-xs">{group.altText ?? "Sem preview disponível"}</span>
                   </div>
                 )}
               </div>

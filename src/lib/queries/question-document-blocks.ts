@@ -9,6 +9,17 @@ export type QuestionDocumentBlockData =
 
 const SECTION_ORDER: Record<string, number> = { base_text: 0, statement: 1, correction: 2, other: 3 };
 
+// .emf/.wmf (metarquivos do Windows) são preservados no Storage — o
+// professor ainda pode baixar o original — mas nenhum navegador consegue
+// decodificá-los como <img>: sem isso, o next/image tenta carregar e falha
+// com "Invalid src prop"/400, e o layout mostra um ícone de imagem quebrada
+// em vez do placeholder "sem preview" que a UI já tem pronto.
+const UNSUPPORTED_IMAGE_EXTENSIONS = [".emf", ".wmf"];
+function isUnsupportedImageFormat(storagePath: string): boolean {
+  const lower = storagePath.toLowerCase();
+  return UNSUPPORTED_IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 /**
  * Reconstrói a estrutura ordenada do documento original (texto-base /
  * imagem / pergunta A / pergunta B...) a partir de question_document_blocks
@@ -44,12 +55,13 @@ export async function fetchQuestionDocumentBlocks(
     if (b.block_type === "image") {
       const assetId = typeof content.assetId === "string" ? content.assetId : null;
       const asset = assetId ? assetById.get(assetId) : undefined;
+      const unsupported = asset ? isUnsupportedImageFormat(asset.storage_path) : false;
       return {
         blockType: "image",
         section: b.section,
         orderIndex: b.order_index,
-        url: assetId ? (signedUrlById.get(assetId) ?? null) : null,
-        altText: asset?.alt_text ?? null,
+        url: assetId && !unsupported ? (signedUrlById.get(assetId) ?? null) : null,
+        altText: asset?.alt_text ?? (unsupported ? "Formato de imagem sem preview (.emf/.wmf)" : null),
       };
     }
 
