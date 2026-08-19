@@ -49,7 +49,7 @@ export function ExamWorkspace({
   mode,
   examId,
 }: {
-  filters: { themeId: string; subthemeId?: string; questionTypes: QuestionType[] };
+  filters: { gradeId: string; subjectId: string; themeId?: string; subthemeId?: string; questionTypes: QuestionType[] };
   initialQuestions: ExamQuestion[];
   initialRequested?: DifficultyBuckets;
   initialFulfilled?: DifficultyBuckets;
@@ -92,7 +92,9 @@ export function ExamWorkspace({
     setReshuffling(true);
     const counts = countByDifficulty(questions);
     const result = await generateExamPreview({
-      themeId: filters.themeId,
+      gradeId: filters.gradeId,
+      subjectId: filters.subjectId,
+      themeId: filters.themeId || "",
       subthemeId: filters.subthemeId || "",
       easyCount: counts.easy,
       mediumCount: counts.medium,
@@ -123,6 +125,8 @@ export function ExamWorkspace({
     setSaving(true);
     const payload = {
       title,
+      gradeId: filters.gradeId,
+      subjectId: filters.subjectId,
       themeId: filters.themeId,
       schoolName,
       instructions,
@@ -151,9 +155,9 @@ export function ExamWorkspace({
     <div className="space-y-6">
       {hasPartialFulfillment && requested && fulfilled && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          Nem todas as questões pedidas foram encontradas nesse tema: {fulfilled.easy} de {requested.easy}{" "}
+          Nem todas as questões pedidas foram encontradas com esses filtros: {fulfilled.easy} de {requested.easy}{" "}
           fáceis, {fulfilled.medium} de {requested.medium} médias, {fulfilled.hard} de {requested.hard}{" "}
-          difíceis. Cadastre mais questões nesse tema ou ajuste os filtros.
+          difíceis. Cadastre mais questões ou ajuste os filtros (série, disciplina, tema).
         </div>
       )}
 

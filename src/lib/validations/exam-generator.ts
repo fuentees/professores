@@ -20,9 +20,20 @@ export const EXAM_QUESTION_TYPES = [
   "mixed",
 ] as const;
 
+// Tema/subtema viraram opcionais: questões cadastradas manualmente sempre
+// têm theme_id (subject_id/grade_id ficam null nelas), mas questões
+// importadas do banco de questões (.docx) só têm subject_id/grade_id — o
+// importador nunca vincula tema automaticamente (fica como aviso pro
+// admin resolver manualmente). Exigir tema deixava esse acervo inteiro
+// inalcançável pelo gerador, mesmo escolhendo a disciplina/série certas —
+// pra algumas disciplinas nem existe "unidade temática" cadastrada, então
+// o seletor em cascata trava antes de chegar no tema. Série+disciplina
+// bastam pra buscar; tema filtra mais quando disponível.
 export const examFiltersSchema = z
   .object({
-    themeId: z.uuid("Selecione um tema."),
+    gradeId: z.uuid("Selecione a série."),
+    subjectId: z.uuid("Selecione a disciplina."),
+    themeId: z.uuid().optional().or(z.literal("")),
     subthemeId: z.uuid().optional().or(z.literal("")),
     easyCount: z.coerce.number().int().min(0).max(MAX_QUESTIONS_PER_EXAM),
     mediumCount: z.coerce.number().int().min(0).max(MAX_QUESTIONS_PER_EXAM),
@@ -47,7 +58,9 @@ export type ExamFiltersInput = z.infer<typeof examFiltersSchema>;
 
 export const saveExamSchema = z.object({
   title: z.string().trim().min(3, "Informe um título para a prova."),
-  themeId: z.uuid(),
+  gradeId: z.uuid().optional().or(z.literal("")),
+  subjectId: z.uuid().optional().or(z.literal("")),
+  themeId: z.uuid().optional().or(z.literal("")),
   schoolName: z.string().trim().optional(),
   instructions: z.string().trim().optional(),
   showAnswerKey: z.boolean(),

@@ -697,6 +697,8 @@ export type Database = {
           teacher_id: string;
           title: string;
           theme_id: string | null;
+          grade_id: string | null;
+          subject_id: string | null;
           school_name: string | null;
           instructions: string | null;
           show_answer_key: boolean;
@@ -708,6 +710,8 @@ export type Database = {
           teacher_id: string;
           title: string;
           theme_id?: string | null;
+          grade_id?: string | null;
+          subject_id?: string | null;
           school_name?: string | null;
           instructions?: string | null;
           show_answer_key?: boolean;
@@ -1111,11 +1115,13 @@ export type Database = {
       create_generated_exam: {
         Args: {
           p_title: string;
-          p_theme_id: string;
+          p_theme_id: string | null;
           p_school_name: string | null;
           p_instructions: string | null;
           p_show_answer_key: boolean;
           p_question_ids: string[];
+          p_grade_id?: string | null;
+          p_subject_id?: string | null;
         };
         Returns: string;
       };
@@ -1127,6 +1133,8 @@ export type Database = {
           p_instructions: string | null;
           p_show_answer_key: boolean;
           p_question_ids: string[];
+          p_grade_id?: string | null;
+          p_subject_id?: string | null;
         };
         Returns: string;
       };

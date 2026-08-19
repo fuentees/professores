@@ -41,7 +41,9 @@ function shuffle<T>(items: T[]): T[] {
 async function pickQuestionIds(
   admin: ReturnType<typeof createAdminClient>,
   params: {
-    themeId: string;
+    gradeId: string;
+    subjectId: string;
+    themeId?: string;
     subthemeId?: string;
     difficulty: "easy" | "medium" | "hard";
     types: QuestionType[];
@@ -54,12 +56,26 @@ async function pickQuestionIds(
   let query = admin
     .from("questions")
     .select("id")
-    .eq("theme_id", params.themeId)
     .eq("difficulty", params.difficulty)
     .eq("status", "active")
     .in("question_type", params.types);
 
-  if (params.subthemeId) query = query.eq("subtheme_id", params.subthemeId);
+  // Duas eras de dado convivem em `questions`: cadastro manual (sempre com
+  // theme_id, subject_id/grade_id ficam null) e importação do banco de
+  // questões via .docx (subject_id/grade_id preenchidos, mas o importador
+  // nunca vincula tema automaticamente — fica pendente de revisão manual).
+  // Filtrar só por theme_id excluía todo o acervo importado mesmo com a
+  // disciplina/série certas selecionadas. Casa qualquer um dos dois.
+  if (params.subthemeId) {
+    query = query.eq("subtheme_id", params.subthemeId);
+  } else if (params.themeId) {
+    query = query.or(
+      `theme_id.eq.${params.themeId},and(subject_id.eq.${params.subjectId},grade_id.eq.${params.gradeId})`,
+    );
+  } else {
+    query = query.eq("subject_id", params.subjectId).eq("grade_id", params.gradeId);
+  }
+
   if (params.excludeIds.length > 0) query = query.not("id", "in", `(${params.excludeIds.join(",")})`);
 
   const { data } = await query;
@@ -147,7 +163,9 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
 
   for (const difficulty of ["easy", "medium", "hard"] as const) {
     const ids = await pickQuestionIds(admin, {
-      themeId: filters.themeId,
+      gradeId: filters.gradeId,
+      subjectId: filters.subjectId,
+      themeId: filters.themeId || undefined,
       subthemeId: filters.subthemeId || undefined,
       difficulty,
       types,
@@ -178,7 +196,7 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
 export async function swapExamQuestion(
   excludeIds: string[],
   difficulty: "easy" | "medium" | "hard",
-  filters: { themeId: string; subthemeId?: string; questionTypes: QuestionType[] },
+  filters: { gradeId: string; subjectId: string; themeId?: string; subthemeId?: string; questionTypes: QuestionType[] },
 ): Promise<SwapResult> {
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para gerar uma prova." };
@@ -186,6 +204,8 @@ export async function swapExamQuestion(
   const admin = createAdminClient();
   const types = filters.questionTypes;
   const ids = await pickQuestionIds(admin, {
+    gradeId: filters.gradeId,
+    subjectId: filters.subjectId,
     themeId: filters.themeId,
     subthemeId: filters.subthemeId,
     difficulty,
@@ -238,11 +258,13 @@ export async function saveGeneratedExam(input: unknown): Promise<SaveExamResult>
   // geração que não existe.
   const { data: examId, error } = await supabase.rpc("create_generated_exam", {
     p_title: data.title,
-    p_theme_id: data.themeId,
+    p_theme_id: data.themeId || null,
     p_school_name: data.schoolName || null,
     p_instructions: data.instructions || null,
     p_show_answer_key: data.showAnswerKey,
     p_question_ids: data.questionIds,
+    p_grade_id: data.gradeId || null,
+    p_subject_id: data.subjectId || null,
   });
 
   if (error || !examId) return { error: error?.message ?? "Não foi possível salvar a prova." };
@@ -278,6 +300,8 @@ export async function updateGeneratedExam(examId: string, input: unknown): Promi
     p_instructions: data.instructions || null,
     p_show_answer_key: data.showAnswerKey,
     p_question_ids: data.questionIds,
+    p_grade_id: data.gradeId || null,
+    p_subject_id: data.subjectId || null,
   });
 
   if (error || !updatedId) return { error: error?.message ?? "Prova não encontrada." };
@@ -291,6 +315,8 @@ export type GeneratedExamDetail = {
   id: string;
   title: string;
   themeId: string | null;
+  gradeId: string | null;
+  subjectId: string | null;
   schoolName: string | null;
   instructions: string | null;
   showAnswerKey: boolean;
@@ -316,12 +342,36 @@ export async function getGeneratedExamDetail(examId: string): Promise<ExamDetail
   const supabase = await createClient();
   const { data: exam } = await supabase
     .from("generated_exams")
-    .select("id, title, theme_id, school_name, instructions, show_answer_key, created_at")
+    .select("id, title, theme_id, grade_id, subject_id, school_name, instructions, show_answer_key, created_at")
     .eq("id", examId)
     .eq("teacher_id", profile.id)
     .maybeSingle();
 
   if (!exam) return { error: "Prova não encontrada." };
+
+  // Provas salvas antes desta coluna existir só têm theme_id — resolve
+  // disciplina/série pela cadeia tema → unidade curricular pra "editar"/
+  // "gerar novamente" continuar funcionando nelas também.
+  let gradeId = exam.grade_id;
+  let subjectId = exam.subject_id;
+  if ((!gradeId || !subjectId) && exam.theme_id) {
+    const { data: theme } = await supabase
+      .from("themes")
+      .select("curriculum_unit_id")
+      .eq("id", exam.theme_id)
+      .maybeSingle();
+    if (theme) {
+      const { data: unit } = await supabase
+        .from("curriculum_units")
+        .select("grade_id, subject_id")
+        .eq("id", theme.curriculum_unit_id)
+        .maybeSingle();
+      if (unit) {
+        gradeId = gradeId ?? unit.grade_id;
+        subjectId = subjectId ?? unit.subject_id;
+      }
+    }
+  }
 
   const { data: links } = await supabase
     .from("generated_exam_questions")
@@ -342,6 +392,8 @@ export async function getGeneratedExamDetail(examId: string): Promise<ExamDetail
       id: exam.id,
       title: exam.title,
       themeId: exam.theme_id,
+      gradeId,
+      subjectId,
       schoolName: exam.school_name,
       instructions: exam.instructions,
       showAnswerKey: exam.show_answer_key,

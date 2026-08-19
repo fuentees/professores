@@ -37,7 +37,13 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
   } | null>(null);
 
   const total = easyCount + mediumCount + hardCount;
+  // Tema/subtema são um refinamento opcional agora — série+disciplina já
+  // bastam pra buscar (ver comentário em pickQuestionIds sobre as duas eras
+  // de dado: cadastro manual sempre tem tema, questões importadas do banco
+  // de questões só têm disciplina/série, sem tema vinculado).
   const filters = {
+    gradeId: taxonomy.gradeId,
+    subjectId: taxonomy.subjectId,
     themeId: taxonomy.themeId,
     subthemeId: taxonomy.subthemeId,
     questionTypes,
@@ -48,8 +54,8 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
   }
 
   async function handleGenerate() {
-    if (!taxonomy.themeId) {
-      toast.error("Selecione o tema da aula.");
+    if (!taxonomy.gradeId || !taxonomy.subjectId) {
+      toast.error("Selecione a série e a disciplina.");
       return;
     }
     if (total < 1) {
@@ -67,6 +73,8 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
 
     setGenerating(true);
     const result = await generateExamPreview({
+      gradeId: taxonomy.gradeId,
+      subjectId: taxonomy.subjectId,
       themeId: taxonomy.themeId,
       subthemeId: taxonomy.subthemeId,
       easyCount,
@@ -82,7 +90,7 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
     }
 
     if (result.questions.length === 0) {
-      toast.error("Nenhuma questão encontrada com esses filtros. Tente outro tema ou dificuldade.");
+      toast.error("Nenhuma questão encontrada com esses filtros. Tente outra série, disciplina ou dificuldade.");
       return;
     }
 
@@ -109,12 +117,16 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
   return (
     <div className="space-y-6">
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="flex flex-col gap-2 pt-6">
           <CascadingTaxonomySelect options={taxonomyOptions} value={taxonomy} onChange={setTaxonomy} />
+          <p className="text-xs text-muted-foreground">
+            Série e disciplina já bastam pra buscar. Tema e subtema são opcionais e só refinam a busca — várias
+            questões do banco de questões (importadas de arquivos) ainda não têm tema vinculado.
+          </p>
         </CardContent>
       </Card>
 
-      {taxonomy.themeId && (
+      {taxonomy.gradeId && taxonomy.subjectId && (
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <div>

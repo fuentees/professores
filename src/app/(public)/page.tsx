@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   BookMarked,
   ClipboardCheck,
@@ -13,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/common/section-header";
 import { MaterialCard } from "@/components/materials/material-card";
@@ -33,6 +35,16 @@ const TASK_SHORTCUTS: TaskShortcut[] = [
 ];
 
 export default async function HomePage() {
+  // Usuário já logado não tem por que ver a página comercial de novo — ela
+  // existe pra converter visitante anônimo. Sem isso, "/" virava mais uma
+  // tela de "início" dentro do mesmo shell, o que confunde (principalmente
+  // quem não tem tanta intimidade com o site).
+  const profile = await getCurrentProfile();
+  if (profile && profile.status === "active") {
+    if (profile.role === "admin") redirect("/admin");
+    if (profile.role === "teacher") redirect("/painel");
+  }
+
   const supabase = await createClient();
 
   const [

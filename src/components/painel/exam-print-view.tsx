@@ -7,6 +7,13 @@ import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import type { ExamQuestion, GeneratedExamDetail } from "@/actions/exam-generator";
 import { EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
 
+// Toda prova tem disciplina/série (direto na prova, ou — pra provas salvas
+// antes dessa coluna existir — resolvido pelo tema em getGeneratedExamDetail).
+// Só o tema em si pode faltar de verdade.
+function canEdit(exam: GeneratedExamDetail): boolean {
+  return Boolean(exam.gradeId && exam.subjectId);
+}
+
 const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
   easy: "Fácil",
   medium: "Média",
@@ -25,7 +32,12 @@ export function ExamPrintView({ exam, questions }: { exam: GeneratedExamDetail; 
         <ExamWorkspace
           mode="edit"
           examId={exam.id}
-          filters={{ themeId: exam.themeId ?? "", questionTypes: [...EXAM_QUESTION_TYPES] }}
+          filters={{
+            gradeId: exam.gradeId ?? "",
+            subjectId: exam.subjectId ?? "",
+            themeId: exam.themeId ?? "",
+            questionTypes: [...EXAM_QUESTION_TYPES],
+          }}
           initialQuestions={questions}
           initialTitle={exam.title}
           initialSchoolName={exam.schoolName ?? ""}
@@ -45,7 +57,7 @@ export function ExamPrintView({ exam, questions }: { exam: GeneratedExamDetail; 
             type="button"
             variant="outline"
             onClick={() => setEditing(true)}
-            disabled={!exam.themeId}
+            disabled={!canEdit(exam)}
           >
             <Pencil className="h-4 w-4" />
             Editar
