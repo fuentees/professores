@@ -74,6 +74,20 @@ export async function createBnccKnowledgeArea(input: unknown): Promise<ActionRes
   return { error: null };
 }
 
+// SimpleEntityManager (Client Component) manda {name, orderIndex, parentId}
+// — chave genérica, diferente de "stageId" que createBnccKnowledgeArea
+// espera. Precisa ser uma Server Action de verdade (export próprio num
+// arquivo "use server"), não uma arrow function criada inline na página:
+// isso quebra a serialização RSC ("Event handlers cannot be passed to
+// Client Component props").
+export async function createBnccKnowledgeAreaFromParent(values: {
+  name: string;
+  orderIndex: number;
+  parentId?: string;
+}): Promise<ActionResult> {
+  return createBnccKnowledgeArea({ name: values.name, orderIndex: values.orderIndex, stageId: values.parentId });
+}
+
 export async function deleteBnccKnowledgeArea(id: string): Promise<ActionResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
@@ -106,6 +120,15 @@ export async function createBnccComponent(input: unknown): Promise<ActionResult>
   if (error) return { error: error.message };
   revalidatePath(BNCC_PATH);
   return { error: null };
+}
+
+// Mesma razão de createBnccKnowledgeAreaFromParent acima.
+export async function createBnccComponentFromParent(values: {
+  name: string;
+  orderIndex: number;
+  parentId?: string;
+}): Promise<ActionResult> {
+  return createBnccComponent({ name: values.name, orderIndex: values.orderIndex, knowledgeAreaId: values.parentId });
 }
 
 export async function deleteBnccComponent(id: string): Promise<ActionResult> {

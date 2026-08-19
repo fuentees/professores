@@ -3,8 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SimpleEntityManager } from "@/components/admin/simple-entity-manager";
 import { BnccSkillsManager, type BnccSkillRow } from "@/components/admin/bncc-skills-manager";
 import {
-  createBnccComponent,
-  createBnccKnowledgeArea,
+  createBnccComponentFromParent,
+  createBnccKnowledgeAreaFromParent,
   createBnccStage,
   deleteBnccComponent,
   deleteBnccKnowledgeArea,
@@ -46,7 +46,7 @@ export default async function BnccAdminPage() {
             title="Etapas"
             emptyLabel="Nenhuma etapa cadastrada ainda."
             rows={stages ?? []}
-            onCreate={({ name, orderIndex }) => createBnccStage({ name, orderIndex })}
+            onCreate={createBnccStage}
             onDelete={deleteBnccStage}
           />
         </TabsContent>
@@ -58,10 +58,8 @@ export default async function BnccAdminPage() {
             rows={areas ?? []}
             parentLabel="Etapa"
             parentOptions={stages ?? []}
-            parentColumnValue={(row) => row.stage_id}
-            onCreate={({ name, orderIndex, parentId }) =>
-              createBnccKnowledgeArea({ name, orderIndex, stageId: parentId! })
-            }
+            parentColumnKey="stage_id"
+            onCreate={createBnccKnowledgeAreaFromParent}
             onDelete={deleteBnccKnowledgeArea}
           />
         </TabsContent>
@@ -73,10 +71,8 @@ export default async function BnccAdminPage() {
             rows={components ?? []}
             parentLabel="Área do conhecimento"
             parentOptions={areas ?? []}
-            parentColumnValue={(row) => row.knowledge_area_id}
-            onCreate={({ name, orderIndex, parentId }) =>
-              createBnccComponent({ name, orderIndex, knowledgeAreaId: parentId! })
-            }
+            parentColumnKey="knowledge_area_id"
+            onCreate={createBnccComponentFromParent}
             onDelete={deleteBnccComponent}
           />
         </TabsContent>

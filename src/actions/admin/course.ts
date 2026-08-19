@@ -171,18 +171,22 @@ export async function uploadCourseCover(courseId: string, file: File): Promise<A
 
 // ---------- Módulos ----------
 
-export async function createModule(values: {
-  name: string;
-  orderIndex: number;
-  parentId?: string;
-}): Promise<ActionResult> {
+// courseId como primeiro argumento (em vez de dentro de `values`) pra poder
+// ser passado como `createModule.bind(null, courseId)` na página — produz
+// uma Server Action de verdade com o curso já embutido, sem precisar de uma
+// arrow function inline (que quebra a serialização RSC ao cruzar pra um
+// Client Component).
+export async function createModule(
+  courseId: string,
+  values: { name: string; orderIndex: number },
+): Promise<ActionResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
-  if (!values.parentId) return { error: "Curso inválido." };
+  if (!courseId) return { error: "Curso inválido." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("course_modules").insert({
-    course_id: values.parentId,
+    course_id: courseId,
     title: values.name,
     order_index: values.orderIndex,
   });

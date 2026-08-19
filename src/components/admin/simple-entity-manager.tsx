@@ -25,7 +25,7 @@ export function SimpleEntityManager<TRow extends SimpleEntityRow>({
   rows,
   parentLabel,
   parentOptions,
-  parentColumnValue,
+  parentColumnKey,
   onCreate,
   onDelete,
 }: {
@@ -34,7 +34,14 @@ export function SimpleEntityManager<TRow extends SimpleEntityRow>({
   rows: TRow[];
   parentLabel?: string;
   parentOptions?: SimpleParentOption[];
-  parentColumnValue?: (row: TRow) => string;
+  /**
+   * Nome da coluna de `TRow` que guarda o id do pai (ex.: "stage_id"). Uma
+   * chave string (em vez de função acessora) porque qualquer função —
+   * mesmo uma que só lê um campo, sem chamar Server Action nenhuma — não
+   * pode cruzar a fronteira de um Server Component pra este Client
+   * Component ("Functions cannot be passed directly to Client Components").
+   */
+  parentColumnKey?: keyof TRow & string;
   onCreate: (values: { name: string; orderIndex: number; parentId?: string }) => Promise<{ error: string | null }>;
   onDelete: (id: string) => Promise<{ error: string | null }>;
 }) {
@@ -120,8 +127,8 @@ export function SimpleEntityManager<TRow extends SimpleEntityRow>({
             {rows.map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="font-medium">{row.name}</TableCell>
-                {parentOptions && parentColumnValue && (
-                  <TableCell className="text-muted-foreground">{parentName(parentColumnValue(row))}</TableCell>
+                {parentOptions && parentColumnKey && (
+                  <TableCell className="text-muted-foreground">{parentName(String(row[parentColumnKey]))}</TableCell>
                 )}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(row.id)}>

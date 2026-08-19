@@ -68,7 +68,7 @@ export default async function EditarCursoPage({
         title="Módulos"
         emptyLabel="Nenhum módulo cadastrado ainda."
         rows={moduleRows}
-        onCreate={(values) => createModule({ ...values, parentId: id })}
+        onCreate={createModule.bind(null, id)}
         onDelete={deleteModule}
       />
 
@@ -79,7 +79,7 @@ export default async function EditarCursoPage({
           rows={lessonRows}
           parentLabel="Módulo"
           parentOptions={moduleRows}
-          parentColumnValue={(row) => row.module_id}
+          parentColumnKey="module_id"
           onCreate={createLesson}
           onDelete={deleteLesson}
         />
