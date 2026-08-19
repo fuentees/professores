@@ -69,7 +69,7 @@ export default async function ForumCategoryPage({
                 {topic.title}
               </p>
               <p className="text-sm text-muted-foreground">
-                por {topic.profiles?.full_name} · {new Date(topic.created_at).toLocaleDateString("pt-BR")}
+                por {topic.profiles?.full_name || "Professor(a)"} · {new Date(topic.created_at).toLocaleDateString("pt-BR")}
               </p>
             </div>
             <span className="flex items-center gap-1 text-sm text-muted-foreground">

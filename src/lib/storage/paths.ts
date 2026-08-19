@@ -6,6 +6,11 @@ export function contentFileStoragePath(contentId: string, fileName: string) {
   return `contents/${contentId}/${Date.now()}-${fileName}`;
 }
 
+/** Logo da escola do professor, usada no cabeçalho das provas impressas. */
+export function schoolLogoStoragePath(profileId: string, fileName: string) {
+  return `school-logos/${profileId}/${Date.now()}-${fileName}`;
+}
+
 /** Word original de uma importação do banco de questões — nunca público. */
 export function questionOriginalStoragePath(importId: string, fileName: string) {
   return `question-originals/${importId}/${fileName}`;

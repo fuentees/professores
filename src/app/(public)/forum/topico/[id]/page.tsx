@@ -66,7 +66,7 @@ export default async function TopicPage({
           {topic.title}
         </h1>
         <p className="text-sm text-muted-foreground">
-          por {topic.profiles?.full_name} ·{" "}
+          por {topic.profiles?.full_name || "Professor(a)"} ·{" "}
           {new Date(topic.created_at).toLocaleString("pt-BR")}
         </p>
       </div>

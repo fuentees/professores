@@ -31,6 +31,26 @@ export function extractItems(statementText: string): { items: ParsedItem[]; lead
   return { items, leadingText };
 }
 
+/**
+ * Alguns documentos colam um bloco de texto duplicado *exatamente*, sem
+ * nenhum rótulo entre as cópias (diferente do padrão "Questão N Valor:" já
+ * tratado em MID_DRAFT_MARKER) — confirmado em HIS4-1T-001-B, onde o mesmo
+ * parágrafo de ~700 caracteres aparece duas vezes seguidas antes do texto
+ * base real. Detecta o maior bloco a partir do início que se repete
+ * imediatamente (text[0:k] === text[k:2k]) e remove a segunda cópia. Só
+ * considera blocos >= 60 caracteres pra nunca confundir com repetições
+ * curtas legítimas de prosa.
+ */
+export function collapseLeadingExactRepeat(text: string): string {
+  const n = text.length;
+  for (let k = Math.floor(n / 2); k >= 60; k--) {
+    if (text.slice(0, k) === text.slice(k, 2 * k)) {
+      return (text.slice(0, k) + text.slice(2 * k)).trim();
+    }
+  }
+  return text;
+}
+
 // [\s\S] no lugar de "." com flag /s (dotAll) — o target TS do projeto é
 // ES2017, que não suporta a flag /s em regex literais.
 const COMANDO_PATTERN = /Comando\s+([A-Ea-e])\s*[-:]\s*([\s\S]+?)(?=Comando\s+[A-Ea-e]\s*[-:]|$)/gi;

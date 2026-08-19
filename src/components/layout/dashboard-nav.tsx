@@ -5,8 +5,14 @@ import { usePathname } from "next/navigation";
 
 export type DashboardNavLinkData = { href: string; label: string; icon: React.ReactNode };
 
+// Item de "raiz" de uma área (ex: /admin, /dono, /painel — só um segmento de
+// path) só fica ativo em match exato; senão qualquer sub-rota (/admin/
+// materiais, /dono/planos...) o mantém marcado como ativo *junto* com o item
+// mais específico correspondente, já que toda sub-rota começa com o mesmo
+// prefixo.
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/painel") return pathname === "/painel";
+  const isSectionRoot = /^\/[^/]+$/.test(href);
+  if (isSectionRoot) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

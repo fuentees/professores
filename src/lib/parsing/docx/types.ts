@@ -59,6 +59,8 @@ export type ParsedQuestionDraft = {
   bloomPrimaryRaw: ExtractedField<string>;
   bloomJustification: ExtractedField<string>;
   statementCandidates: string[];
+  /** Enunciado sem os itens A/B/C embutidos (ver extractItems) — é o que vai pra `questions.statement`; `items` cobre a parte itemizada. */
+  leadingText: string;
   items: ParsedItem[];
   answers: ParsedAnswer[];
   rubrics: ParsedRubricRow[];

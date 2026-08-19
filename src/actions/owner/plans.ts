@@ -2,22 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
+import { requireOwner, NotOwnerError } from "@/lib/auth/require-owner";
 import { slugify, ensureUniqueSlug } from "@/lib/slug";
 import { planSchema } from "@/lib/validations/plan";
 
 export type ActionResult = { error: string | null };
 
-const PLANS_PATH = "/admin/planos";
+const PLANS_PATH = "/dono/planos";
 
 export async function createPlan(input: unknown): Promise<ActionResult> {
   const parsed = planSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
   try {
-    await requireAdmin();
+    await requireOwner();
   } catch (e) {
-    if (e instanceof NotAdminError) return { error: e.message };
+    if (e instanceof NotOwnerError) return { error: e.message };
     throw e;
   }
 
@@ -47,9 +47,9 @@ export async function updatePlan(id: string, input: unknown): Promise<ActionResu
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
 
   try {
-    await requireAdmin();
+    await requireOwner();
   } catch (e) {
-    if (e instanceof NotAdminError) return { error: e.message };
+    if (e instanceof NotOwnerError) return { error: e.message };
     throw e;
   }
 
@@ -78,9 +78,9 @@ export async function updatePlan(id: string, input: unknown): Promise<ActionResu
 
 export async function deletePlan(id: string): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireOwner();
   } catch (e) {
-    if (e instanceof NotAdminError) return { error: e.message };
+    if (e instanceof NotOwnerError) return { error: e.message };
     throw e;
   }
 
@@ -102,9 +102,9 @@ export async function deletePlan(id: string): Promise<ActionResult> {
 
 export async function setPlanStatus(id: string, status: "active" | "inactive"): Promise<ActionResult> {
   try {
-    await requireAdmin();
+    await requireOwner();
   } catch (e) {
-    if (e instanceof NotAdminError) return { error: e.message };
+    if (e instanceof NotOwnerError) return { error: e.message };
     throw e;
   }
 

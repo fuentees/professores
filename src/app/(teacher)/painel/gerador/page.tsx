@@ -2,9 +2,10 @@ import Link from "next/link";
 import { loadTaxonomyOptions } from "@/lib/taxonomy";
 import { ExamGeneratorForm } from "@/components/painel/exam-generator-form";
 import { Button } from "@/components/ui/button";
+import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 
 export default async function GeradorPage() {
-  const taxonomyOptions = await loadTaxonomyOptions();
+  const [taxonomyOptions, profile] = await Promise.all([loadTaxonomyOptions(), getCurrentProfile()]);
 
   return (
     <div className="space-y-6">
@@ -24,7 +25,7 @@ export default async function GeradorPage() {
         />
       </div>
 
-      <ExamGeneratorForm taxonomyOptions={taxonomyOptions} />
+      <ExamGeneratorForm taxonomyOptions={taxonomyOptions} defaultSchoolName={profile?.school_name ?? ""} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   extractHeaderFields,
   splitKnowledgeObjects,
 } from "./extract-fields";
-import { extractItems, extractProseAnswers, extractRubricTable } from "./extract-items";
+import { collapseLeadingExactRepeat, extractItems, extractProseAnswers, extractRubricTable } from "./extract-items";
 
 const TEXTO_BASE_HEADING = /^TEXTO\s+[IVX]+/i;
 const QUESTAO_MARKER = /^Quest[ãa]o\b/i;
@@ -18,6 +18,12 @@ const QUESTAO_MARKER = /^Quest[ãa]o\b/i;
 // tabela de verdade), colado sem espaço ao texto do enunciado. Remove só
 // esse prefixo de rótulo, nunca o conteúdo em si.
 const QUESTION_PREFIX = /^Quest[ãa]o\s*\d*\s*(?:Valor\s*:\s*[\d,.]*\s*)?/i;
+// Mesmo rótulo de QUESTION_PREFIX, mas sem exigir estar no início do texto —
+// usado pra achar um rascunho duplicado colado no MEIO de um parágrafo (ver
+// comentário onde é usado, em extractQuestionDraft). Exige "Valor:" presente
+// (não opcional) pra não confundir com a palavra "questão" aparecendo
+// naturalmente em prosa.
+const MID_DRAFT_MARKER = /\s*Quest[ãa]o\s*\d+\s*Valor\s*:\s*[\d,.]*\s*/i;
 const CORRECTION_MARKER =
   /Subs[íi]dio\s+para\s+a\s+Corre[çc][ãa]o|Gabarito\s+Oficial|Alinhamento\s+Pedag[óo]gico/i;
 const BLOOM_ROW_MARKER = /Taxonomia\s+de\s+Bloom|situada\s+no\s+\d/i;
@@ -120,7 +126,19 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
   }
 
   const primaryStatement = statementCandidates[0] ?? "";
-  const { items, leadingText } = extractItems(primaryStatement);
+  // Em alguns documentos, um segundo rascunho ("Questão N Valor: ...") vem
+  // colado no MEIO do mesmo parágrafo/célula — sem quebra de nó, então o
+  // agrupamento acima (que só olha o início de cada nó via QUESTAO_MARKER)
+  // não separa em candidatos diferentes. Corta ali: esse marcador só existe
+  // como rótulo de abertura de rascunho, nunca como conteúdo real de
+  // enunciado, então tudo depois dele é sempre repetição.
+  const midDraftMatch = primaryStatement.match(MID_DRAFT_MARKER);
+  const cleanedStatement =
+    midDraftMatch && midDraftMatch.index! > 0 ? primaryStatement.slice(0, midDraftMatch.index).trim() : primaryStatement;
+  // Segundo padrão de duplicação (sem rótulo, bloco colado 2x exatamente) —
+  // ver comentário em collapseLeadingExactRepeat.
+  const dedupedStatement = collapseLeadingExactRepeat(cleanedStatement);
+  const { items, leadingText } = extractItems(dedupedStatement);
 
   // ---- Correção: prosa + tabela de rubrica -------------------------------
   const correctionParagraphs = sectioned
@@ -195,6 +213,7 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
     bloomPrimaryRaw,
     bloomJustification: bloomRowText ? { value: bloomRowText, confidence: "medium" } : { value: null, confidence: "low" },
     statementCandidates: statementCandidates.length > 0 ? statementCandidates : leadingText ? [leadingText] : [],
+    leadingText,
     items,
     answers,
     rubrics,

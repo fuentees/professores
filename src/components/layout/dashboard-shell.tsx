@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, type LucideIcon } from "lucide-react";
+import { Crown, GraduationCap, type LucideIcon } from "lucide-react";
 import { UserMenu } from "@/components/layout/user-menu";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
 import { DashboardMobileNav } from "@/components/layout/dashboard-mobile-nav";
@@ -17,6 +17,7 @@ export function DashboardShell({
   bottomNavItems = [],
   homeHref,
   mainClassName = "p-6",
+  variant,
   children,
 }: {
   profile: CurrentProfile;
@@ -28,6 +29,10 @@ export function DashboardShell({
    * pra não somar padding duplicado. Páginas de /painel não se auto-
    * espaçam, por isso o padrão continua "p-6". */
   mainClassName?: string;
+  /** Por padrão deriva do role (admin x professor). O painel do proprietário
+   * é uma terceira área visualmente distinta — passa "owner" explicitamente
+   * pra não ser confundido com o admin de conteúdo. */
+  variant?: "teacher" | "admin" | "owner";
   children: React.ReactNode;
 }) {
   // Renderiza os ícones aqui (server component) e passa elementos já
@@ -48,20 +53,28 @@ export function DashboardShell({
 
   // Admin fica visualmente mais neutro (sem o gradiente coral/violeta e
   // sem destaque coral no item ativo) — reforça que é uma área separada
-  // do app do professor, não a mesma coisa com outro menu.
-  const isAdmin = profile.role === "admin";
-  const activeClassName = isAdmin ? "bg-accent text-foreground" : "bg-primary/10 text-primary";
+  // do app do professor, não a mesma coisa com outro menu. O painel do
+  // proprietário (owner) ganha uma terceira identidade (âmbar/coroa) pra
+  // não ser confundido com o admin de conteúdo, mesmo tendo layout igual.
+  const resolvedVariant = variant ?? (profile.role === "admin" ? "admin" : "teacher");
+  const isAdmin = resolvedVariant === "admin";
+  const isOwner = resolvedVariant === "owner";
+  const activeClassName = isOwner
+    ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+    : isAdmin
+      ? "bg-accent text-foreground"
+      : "bg-primary/10 text-primary";
 
   const logo = (
     <Link href={homeHref} className="flex items-center gap-2.5 font-semibold">
       <span
         className={`flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground shadow-sm ${
-          isAdmin ? "bg-foreground" : "bg-gradient-to-br from-primary to-interactive"
+          isOwner ? "bg-amber-600" : isAdmin ? "bg-foreground" : "bg-gradient-to-br from-primary to-interactive"
         }`}
       >
-        <GraduationCap className="h-4.5 w-4.5" strokeWidth={2} />
+        {isOwner ? <Crown className="h-4.5 w-4.5" strokeWidth={2} /> : <GraduationCap className="h-4.5 w-4.5" strokeWidth={2} />}
       </span>
-      <span className="text-sm tracking-tight">Portal do Professor</span>
+      <span className="text-sm tracking-tight">{isOwner ? "Painel do Proprietário" : "Portal do Professor"}</span>
     </Link>
   );
 

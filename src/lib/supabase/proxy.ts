@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/supabase";
 
 const ADMIN_PREFIX = "/admin";
+const OWNER_PREFIX = "/dono";
 const TEACHER_PREFIX = "/painel";
 // /redefinir-senha fica de fora: o link de recuperação de senha autentica o
 // usuário (sessão de recovery) antes de trazê-lo para essa página, então não
@@ -43,7 +44,10 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = AUTH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
-  if (!user && (pathname.startsWith(ADMIN_PREFIX) || pathname.startsWith(TEACHER_PREFIX))) {
+  if (
+    !user &&
+    (pathname.startsWith(ADMIN_PREFIX) || pathname.startsWith(OWNER_PREFIX) || pathname.startsWith(TEACHER_PREFIX))
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/entrar";
     url.searchParams.set("redirect", pathname);
@@ -60,6 +64,22 @@ export async function updateSession(request: NextRequest) {
     if (profile?.role !== "admin") {
       const url = request.nextUrl.clone();
       url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Painel do proprietário: além de admin, exige a flag is_owner — mais
+  // restrito que o admin de conteúdo comum.
+  if (user && pathname.startsWith(OWNER_PREFIX)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, status, is_owner")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (profile?.role !== "admin" || !profile.is_owner) {
+      const url = request.nextUrl.clone();
+      url.pathname = profile?.role === "admin" ? "/admin" : "/";
       return NextResponse.redirect(url);
     }
   }

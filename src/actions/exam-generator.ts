@@ -15,6 +15,11 @@ export type ExamQuestion = {
   difficulty: "easy" | "medium" | "hard";
   answerKey: string | null;
   alternatives: { id: string; label: string; body: string; isCorrect: boolean }[];
+  // Questões importadas do banco de questões costumam ter itens A/B/C
+  // estruturados à parte do enunciado (question_parts) — sem isso, a
+  // única opção era mostrar o `statement` bruto inteiro (que pode vir com
+  // formatação corrida do .docx original), sem separar os itens.
+  parts: { id: string; label: string; prompt: string; orderIndex: number }[];
 };
 
 type DifficultyBuckets = { easy: number; medium: number; hard: number };
@@ -38,6 +43,31 @@ function shuffle<T>(items: T[]): T[] {
   return arr;
 }
 
+/**
+ * Questões cadastradas manualmente só têm `theme_id` (subject_id/grade_id
+ * ficam null nelas) — quando o professor não escolhe um tema específico
+ * (fluxo normal agora que tema é opcional), a única forma de incluir esse
+ * acervo na busca por disciplina+série é resolver de antemão quais temas
+ * pertencem a essa disciplina+série. Sem isso, ficam invisíveis do mesmo
+ * jeito que o acervo importado ficava antes de tema virar opcional.
+ */
+async function resolveThemeIdsForSubjectGrade(
+  admin: ReturnType<typeof createAdminClient>,
+  subjectId: string,
+  gradeId: string,
+): Promise<string[]> {
+  const { data: units } = await admin
+    .from("curriculum_units")
+    .select("id")
+    .eq("subject_id", subjectId)
+    .eq("grade_id", gradeId);
+  const unitIds = (units ?? []).map((u) => u.id);
+  if (unitIds.length === 0) return [];
+
+  const { data: themes } = await admin.from("themes").select("id").in("curriculum_unit_id", unitIds);
+  return (themes ?? []).map((t) => t.id);
+}
+
 async function pickQuestionIds(
   admin: ReturnType<typeof createAdminClient>,
   params: {
@@ -45,6 +75,10 @@ async function pickQuestionIds(
     subjectId: string;
     themeId?: string;
     subthemeId?: string;
+    /** Temas que pertencem à disciplina+série, resolvidos uma vez fora do
+     * loop de dificuldade (ver resolveThemeIdsForSubjectGrade) — só usado
+     * quando nenhum tema específico foi escolhido. */
+    fallbackThemeIds?: string[];
     difficulty: "easy" | "medium" | "hard";
     types: QuestionType[];
     count: number;
@@ -64,13 +98,17 @@ async function pickQuestionIds(
   // theme_id, subject_id/grade_id ficam null) e importação do banco de
   // questões via .docx (subject_id/grade_id preenchidos, mas o importador
   // nunca vincula tema automaticamente — fica pendente de revisão manual).
-  // Filtrar só por theme_id excluía todo o acervo importado mesmo com a
-  // disciplina/série certas selecionadas. Casa qualquer um dos dois.
+  // Filtrar só por um dos dois excluía o outro grupo inteiro. Casa
+  // qualquer um dos dois em qualquer cenário (tema escolhido ou não).
   if (params.subthemeId) {
     query = query.eq("subtheme_id", params.subthemeId);
   } else if (params.themeId) {
     query = query.or(
       `theme_id.eq.${params.themeId},and(subject_id.eq.${params.subjectId},grade_id.eq.${params.gradeId})`,
+    );
+  } else if (params.fallbackThemeIds && params.fallbackThemeIds.length > 0) {
+    query = query.or(
+      `theme_id.in.(${params.fallbackThemeIds.join(",")}),and(subject_id.eq.${params.subjectId},grade_id.eq.${params.gradeId})`,
     );
   } else {
     query = query.eq("subject_id", params.subjectId).eq("grade_id", params.gradeId);
@@ -89,7 +127,7 @@ async function hydrateQuestions(
 ): Promise<ExamQuestion[]> {
   if (ids.length === 0) return [];
 
-  const [{ data: questions }, { data: alternatives }, { data: answers }] = await Promise.all([
+  const [{ data: questions }, { data: alternatives }, { data: answers }, { data: allParts }] = await Promise.all([
     admin.from("questions").select("id, statement, question_type, difficulty, answer_key").in("id", ids),
     admin
       .from("question_alternatives")
@@ -101,14 +139,21 @@ async function hydrateQuestions(
     // possivelmente um registro por parte A/B/C) — busca aqui pra não
     // aparecer "sem resposta cadastrada" indevidamente no gerador de provas.
     admin.from("question_answers").select("question_id, question_part_id, expected_answer").in("question_id", ids),
+    // Itens A/B/C estruturados (ver comentário em ExamQuestion.parts).
+    admin
+      .from("question_parts")
+      .select("id, question_id, label, prompt, order_index")
+      .in("question_id", ids)
+      .order("order_index"),
   ]);
 
-  const partIds = (answers ?? []).map((a) => a.question_part_id).filter((id): id is string => Boolean(id));
-  const { data: parts } =
-    partIds.length > 0
-      ? await admin.from("question_parts").select("id, label, order_index").in("id", partIds)
-      : { data: [] as { id: string; label: string; order_index: number }[] };
-  const partById = new Map((parts ?? []).map((p) => [p.id, p]));
+  const partById = new Map((allParts ?? []).map((p) => [p.id, p]));
+  const partsByQuestion = new Map<string, { id: string; label: string; prompt: string; orderIndex: number }[]>();
+  for (const p of allParts ?? []) {
+    const list = partsByQuestion.get(p.question_id) ?? [];
+    list.push({ id: p.id, label: p.label, prompt: p.prompt, orderIndex: p.order_index });
+    partsByQuestion.set(p.question_id, list);
+  }
 
   const answersByQuestion = new Map<string, { label: string | null; order: number; text: string }[]>();
   for (const a of answers ?? []) {
@@ -135,6 +180,7 @@ async function hydrateQuestions(
       questionType: q.question_type,
       difficulty: q.difficulty,
       answerKey: q.answer_key ?? fallbackAnswer,
+      parts: (partsByQuestion.get(q.id) ?? []).sort((a, b) => a.orderIndex - b.orderIndex),
       alternatives: (alternatives ?? [])
         .filter((a) => a.question_id === q.id)
         .map((a) => ({ id: a.id, label: a.label, body: a.body, isCorrect: a.is_correct })),
@@ -153,6 +199,12 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
   const admin = createAdminClient();
   const types = filters.questionTypes;
 
+  // Só resolve os temas da disciplina+série quando o professor não
+  // escolheu um tema específico — evita a consulta extra no caso comum.
+  const fallbackThemeIds = filters.themeId
+    ? undefined
+    : await resolveThemeIdsForSubjectGrade(admin, filters.subjectId, filters.gradeId);
+
   const requested: DifficultyBuckets = {
     easy: filters.easyCount,
     medium: filters.mediumCount,
@@ -167,6 +219,7 @@ export async function generateExamPreview(input: unknown): Promise<GeneratePrevi
       subjectId: filters.subjectId,
       themeId: filters.themeId || undefined,
       subthemeId: filters.subthemeId || undefined,
+      fallbackThemeIds,
       difficulty,
       types,
       count: requested[difficulty],
@@ -203,11 +256,15 @@ export async function swapExamQuestion(
 
   const admin = createAdminClient();
   const types = filters.questionTypes;
+  const fallbackThemeIds = filters.themeId
+    ? undefined
+    : await resolveThemeIdsForSubjectGrade(admin, filters.subjectId, filters.gradeId);
   const ids = await pickQuestionIds(admin, {
     gradeId: filters.gradeId,
     subjectId: filters.subjectId,
     themeId: filters.themeId,
     subthemeId: filters.subthemeId,
+    fallbackThemeIds,
     difficulty,
     types,
     count: 1,

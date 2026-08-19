@@ -7,8 +7,11 @@ import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { DashboardNavLinkData } from "@/components/layout/dashboard-nav";
 
+// Mantém em sincronia com a mesma lógica em dashboard-nav.tsx (versão
+// desktop) — ver comentário lá sobre o match exato pra itens de raiz.
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/painel") return pathname === "/painel";
+  const isSectionRoot = /^\/[^/]+$/.test(href);
+  if (isSectionRoot) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

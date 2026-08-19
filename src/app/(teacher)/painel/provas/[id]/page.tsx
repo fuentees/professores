@@ -13,5 +13,11 @@ export default async function ProvaDetalhePage({
   const result = await getGeneratedExamDetail(id);
   if (result.error || !result.exam) notFound();
 
-  return <ExamPrintView exam={result.exam} questions={result.questions ?? []} />;
+  return (
+    <ExamPrintView
+      exam={result.exam}
+      questions={result.questions ?? []}
+      printSettings={{ schoolLogoUrl: profile.school_logo_url, schoolPhone: profile.school_phone }}
+    />
+  );
 }

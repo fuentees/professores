@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Printer, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
+import { ExamQuestionBody } from "@/components/painel/exam-question-body";
 import type { ExamQuestion, GeneratedExamDetail } from "@/actions/exam-generator";
 import { EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
 
@@ -20,7 +21,17 @@ const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
   hard: "Difícil",
 };
 
-export function ExamPrintView({ exam, questions }: { exam: GeneratedExamDetail; questions: ExamQuestion[] }) {
+type PrintSettings = { schoolLogoUrl: string | null; schoolPhone: string | null };
+
+export function ExamPrintView({
+  exam,
+  questions,
+  printSettings,
+}: {
+  exam: GeneratedExamDetail;
+  questions: ExamQuestion[];
+  printSettings?: PrintSettings;
+}) {
   const [editing, setEditing] = useState(false);
 
   if (editing) {
@@ -69,38 +80,47 @@ export function ExamPrintView({ exam, questions }: { exam: GeneratedExamDetail; 
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl space-y-6 rounded-lg border bg-background p-8 print:border-0 print:p-0 print:shadow-none">
-        <div className="space-y-1 border-b pb-4">
-          <h2 className="text-xl font-bold">{exam.title}</h2>
-          {exam.schoolName && <p className="text-sm text-muted-foreground">{exam.schoolName}</p>}
-          <div className="mt-3 flex flex-wrap gap-x-8 gap-y-1 text-sm">
+      <div className="mx-auto max-w-3xl space-y-8 rounded-lg border bg-background p-8 print:max-w-none print:space-y-6 print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <div className="space-y-3 border-b-2 border-foreground/80 pb-4">
+          <div className="flex items-start gap-4">
+            {printSettings?.schoolLogoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- logo enviada pelo usuário, tamanho fixo pequeno
+              <img
+                src={printSettings.schoolLogoUrl}
+                alt="Logo da escola"
+                className="h-14 w-14 shrink-0 rounded-md border object-contain p-1 print:h-12 print:w-12"
+              />
+            )}
+            <div className="space-y-0.5">
+              {exam.schoolName && <p className="text-sm font-semibold uppercase tracking-wide">{exam.schoolName}</p>}
+              <h2 className="text-xl font-bold">{exam.title}</h2>
+              {printSettings?.schoolPhone && (
+                <p className="text-xs text-muted-foreground print:text-foreground">Tel: {printSettings.schoolPhone}</p>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-2 pt-1 text-sm sm:grid-cols-2">
             <span>Nome: _______________________________________</span>
             <span>Data: ____/____/______</span>
+            <span>Turma: ___________</span>
+            <span>Nota: ___________</span>
           </div>
-          {exam.instructions && <p className="mt-2 text-sm text-muted-foreground">{exam.instructions}</p>}
+          {exam.instructions && (
+            <p className="whitespace-pre-wrap break-words rounded-md bg-muted/50 p-3 text-sm text-muted-foreground print:rounded-none print:bg-transparent print:p-0 print:text-foreground">
+              {exam.instructions}
+            </p>
+          )}
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-6 print:space-y-5">
           {questions.map((question, index) => (
-            <div key={question.id} className="space-y-2 break-inside-avoid">
-              <p className="text-sm font-medium">
-                {index + 1}. {question.statement}
-              </p>
-              {question.questionType === "multiple_choice" ? (
-                <ul className="flex flex-col gap-1 pl-4 text-sm">
-                  {question.alternatives.map((alt) => (
-                    <li key={alt.id}>
-                      ( &nbsp; ) {alt.label}) {alt.body}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="space-y-3 pl-4">
-                  <div className="border-b border-dotted pt-4" />
-                  <div className="border-b border-dotted pt-4" />
-                  <div className="border-b border-dotted pt-4" />
-                </div>
-              )}
+            <div key={question.id} className="flex gap-3 break-inside-avoid">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-foreground/60 text-xs font-bold">
+                {index + 1}
+              </span>
+              <div className="flex-1 space-y-2 pt-0.5 text-sm">
+                <ExamQuestionBody question={question} mode="print" printAlternativeMarker />
+              </div>
             </div>
           ))}
         </div>

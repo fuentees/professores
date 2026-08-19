@@ -22,11 +22,21 @@ type Requested = { easy: number; medium: number; hard: number };
 
 const DEFAULT_QUESTION_TYPES: QuestionType[] = ["multiple_choice", "essay"];
 
-export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: TaxonomyOptions }) {
+export function ExamGeneratorForm({
+  taxonomyOptions,
+  defaultSchoolName = "",
+}: {
+  taxonomyOptions: TaxonomyOptions;
+  defaultSchoolName?: string;
+}) {
   const [taxonomy, setTaxonomy] = useState<TaxonomySelection>(EMPTY_TAXONOMY_SELECTION);
-  const [easyCount, setEasyCount] = useState(0);
-  const [mediumCount, setMediumCount] = useState(0);
-  const [hardCount, setHardCount] = useState(0);
+  // Padrão não-zero de propósito: com os três campos começando em 0, dava
+  // pra clicar "Gerar prévia" sem perceber que o total era 0 — o toast de
+  // erro passava despercebido e parecia que "não aparecia nenhuma
+  // questão". Um valor inicial razoável evita esse tropeço.
+  const [easyCount, setEasyCount] = useState(2);
+  const [mediumCount, setMediumCount] = useState(5);
+  const [hardCount, setHardCount] = useState(3);
   const [questionTypes, setQuestionTypes] = useState<QuestionType[]>(DEFAULT_QUESTION_TYPES);
   const [generating, setGenerating] = useState(false);
 
@@ -109,6 +119,7 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
           initialQuestions={preview.questions}
           initialRequested={preview.requested}
           initialFulfilled={preview.fulfilled}
+          initialSchoolName={defaultSchoolName}
         />
       </div>
     );
@@ -187,7 +198,25 @@ export function ExamGeneratorForm({ taxonomyOptions }: { taxonomyOptions: Taxono
               </div>
             </div>
 
-            <Button type="button" onClick={handleGenerate} disabled={generating} className="self-start">
+            {total < 1 && (
+              <p className="text-sm font-medium text-destructive">
+                Escolha pelo menos 1 questão nas quantidades acima (Fáceis, Médias ou Difíceis) pra gerar a prévia.
+              </p>
+            )}
+            {total > MAX_QUESTIONS_PER_EXAM && (
+              <p className="text-sm font-medium text-destructive">
+                Máximo de {MAX_QUESTIONS_PER_EXAM} questões por prova — reduza as quantidades acima.
+              </p>
+            )}
+            {questionTypes.length === 0 && (
+              <p className="text-sm font-medium text-destructive">Selecione pelo menos um tipo de questão.</p>
+            )}
+            <Button
+              type="button"
+              onClick={handleGenerate}
+              disabled={generating || total < 1 || total > MAX_QUESTIONS_PER_EXAM || questionTypes.length === 0}
+              className="self-start"
+            >
               {generating ? "Gerando..." : "Gerar prévia"}
             </Button>
           </CardContent>

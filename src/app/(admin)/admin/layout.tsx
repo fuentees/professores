@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   BookMarked,
   BookOpen,
+  Crown,
   FolderOpen,
   GraduationCap,
   Home,
@@ -15,7 +17,6 @@ import {
   Ticket,
   Upload,
   Users,
-  Wallet,
 } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { DashboardShell, type DashboardNavItem } from "@/components/layout/dashboard-shell";
@@ -35,7 +36,6 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/admin/blog", label: "Blog", icon: Newspaper },
   { href: "/admin/forum", label: "Fórum", icon: MessageSquare },
   { href: "/admin/professores", label: "Professores", icon: Users },
-  { href: "/admin/planos", label: "Planos e assinaturas", icon: Wallet },
   { href: "/admin/questoes/importacoes", label: "Importações de questões", icon: Upload },
 ];
 
@@ -52,9 +52,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <DashboardShell profile={profile} navItems={NAV_ITEMS} homeHref="/admin">
-      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <ShieldCheck className="h-4 w-4" />
-        Painel administrativo
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ShieldCheck className="h-4 w-4" />
+          Painel administrativo — gestão de conteúdo
+        </div>
+        {profile.is_owner && (
+          <Link href="/dono" className="flex items-center gap-1.5 text-sm font-medium text-amber-700 hover:underline dark:text-amber-400">
+            <Crown className="h-4 w-4" />
+            Painel do proprietário
+          </Link>
+        )}
       </div>
       {children}
     </DashboardShell>

@@ -18,7 +18,7 @@ import {
   updateGeneratedExam,
   type ExamQuestion,
 } from "@/actions/exam-generator";
-import { QUESTION_TYPE_LABELS } from "@/lib/labels";
+import { ExamQuestionBody } from "@/components/painel/exam-question-body";
 import type { QuestionType } from "@/types/supabase";
 
 const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
@@ -174,9 +174,10 @@ export function ExamWorkspace({
           <Card key={question.id}>
             <CardContent className="flex flex-col gap-3 pt-6">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium">
-                  {index + 1}. {question.statement}
-                </p>
+                <span className="shrink-0 text-sm font-semibold">{index + 1}.</span>
+                <div className="flex-1 space-y-2 text-sm">
+                  <ExamQuestionBody question={question} mode="preview" />
+                </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge variant="outline">{DIFFICULTY_LABELS[question.difficulty]}</Badge>
                   <Button
@@ -190,20 +191,6 @@ export function ExamWorkspace({
                   </Button>
                 </div>
               </div>
-
-              {question.questionType === "multiple_choice" ? (
-                <ul className="flex flex-col gap-1 pl-4 text-sm text-muted-foreground">
-                  {question.alternatives.map((alt) => (
-                    <li key={alt.id}>
-                      {alt.label}) {alt.body}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="pl-4 text-sm text-muted-foreground">
-                  {QUESTION_TYPE_LABELS[question.questionType] ?? "Questão"} (resposta aberta).
-                </p>
-              )}
             </CardContent>
           </Card>
         ))}

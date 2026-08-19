@@ -3,7 +3,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPlan, deletePlan, setPlanStatus, updatePlan } from "@/actions/admin/plans";
+import { createPlan, deletePlan, setPlanStatus, updatePlan } from "@/actions/owner/plans";
 import { planSchema, type PlanInput } from "@/lib/validations/plan";
 import { CatalogManager, type CatalogRow } from "@/components/admin/catalog-manager";
 import { TagInput } from "@/components/admin/tag-input";

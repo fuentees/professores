@@ -81,6 +81,10 @@ export type Database = {
           avatar_url: string | null;
           role: UserRole;
           status: UserStatus;
+          is_owner: boolean;
+          school_name: string | null;
+          school_phone: string | null;
+          school_logo_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -93,6 +97,10 @@ export type Database = {
           avatar_url?: string | null;
           role?: UserRole;
           status?: UserStatus;
+          is_owner?: boolean;
+          school_name?: string | null;
+          school_phone?: string | null;
+          school_logo_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -105,6 +113,10 @@ export type Database = {
           avatar_url?: string | null;
           role?: UserRole;
           status?: UserStatus;
+          is_owner?: boolean;
+          school_name?: string | null;
+          school_phone?: string | null;
+          school_logo_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -364,6 +376,25 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["plans"]["Insert"]>;
+        Relationships: [];
+      };
+
+      site_settings: {
+        Row: {
+          id: boolean;
+          support_email: string | null;
+          maintenance_mode: boolean;
+          maintenance_message: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          support_email?: string | null;
+          maintenance_mode?: boolean;
+          maintenance_message?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["site_settings"]["Insert"]>;
         Relationships: [];
       };
 

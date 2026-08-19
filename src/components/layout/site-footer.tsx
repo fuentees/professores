@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export function SiteFooter() {
+export function SiteFooter({ supportEmail }: { supportEmail?: string | null }) {
   return (
     <footer className="border-t bg-muted/30">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm sm:grid-cols-3">
@@ -43,6 +43,15 @@ export function SiteFooter() {
             Planos
           </Link>
         </div>
+
+        {supportEmail && (
+          <div className="flex flex-col gap-2">
+            <p className="font-medium">Contato</p>
+            <a href={`mailto:${supportEmail}`} className="text-muted-foreground hover:text-foreground">
+              {supportEmail}
+            </a>
+          </div>
+        )}
       </div>
       <div className="border-t px-4 py-4 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} Portal do Professor. Todos os direitos reservados.

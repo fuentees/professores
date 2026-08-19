@@ -27,6 +27,19 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.correctionProse).not.toBeNull();
   });
 
+  it("remove rascunho duplicado colado no meio do mesmo parágrafo (HIS4-1T-005)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("his4-1t-005.docx"));
+
+    // O candidato bruto (statementCandidates) preserva a duplicação real do
+    // documento — é leadingText (o que efetivamente vai pra questions.
+    // statement) que precisa estar limpo. "casarão" só aparece uma vez por
+    // cópia do enunciado, então serve pra detectar duplicação (diferente de
+    // "prefeitura", que já aparece 2x dentro de uma única cópia legítima).
+    expect(draft.leadingText).not.toMatch(/Quest[ãa]o\s*\d+\s*Valor/i);
+    expect(draft.leadingText.match(/casar[ãa]o/gi)).toHaveLength(1);
+    expect(draft.leadingText.length).toBeLessThan(draft.statementCandidates[0].length);
+  });
+
   it("extrai itens A/B/C embutidos no texto corrido (HIS4-1T-001_A)", async () => {
     const { draft } = await parseQuestionDocx(loadFixture("his4-1t-001-a.docx"));
 
@@ -42,6 +55,10 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.rubrics.length).toBeGreaterThan(0);
     const fullLevelRows = draft.rubrics.filter((r) => r.level === "full");
     expect(fullLevelRows.length).toBeGreaterThan(0);
+    // Este documento também repete o bloco "Fonte Material Escrita..." (~700
+    // caracteres) duas vezes seguidas sem nenhum rótulo entre as cópias —
+    // ver collapseLeadingExactRepeat. leadingText precisa ter só uma cópia.
+    expect(draft.leadingText.match(/Fonte Material Escrita/g)).toHaveLength(1);
     expect(fullLevelRows.every((r) => typeof r.criteria === "string" && r.criteria.length > 0)).toBe(true);
   });
 

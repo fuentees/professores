@@ -293,7 +293,11 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
   const { error: rpcError } = await admin.rpc("import_question_draft", {
     p_question_id: questionId,
     p_import_id: importId,
-    p_statement: draft.statementCandidates[0] ?? "",
+    // leadingText já é o enunciado limpo: sem os itens A/B/C embutidos
+    // (viram question_parts separados) e sem rascunho duplicado colado no
+    // meio do texto (ver MID_DRAFT_MARKER em extract.ts). Gravar o
+    // statementCandidate bruto reintroduziria as duas duplicações.
+    p_statement: draft.leadingText,
     p_question_type: "discursive",
     p_difficulty: draft.difficultyRaw.value ?? "medium",
     p_code: draft.code.value,
