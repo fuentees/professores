@@ -16,11 +16,18 @@ function startOfCurrentMonthIso(): string {
  * Limite efetivo de provas geradas por mês para o professor: usa
  * `plans.exam_generation_monthly_limit` da assinatura ativa (null = sem
  * limite), ou o limite grátis fixo se não houver assinatura ativa.
+ *
+ * Contas admin (role "admin", inclui o dono) nunca têm cota — o limite
+ * grátis existe pra monetizar professores comuns, não pra travar quem
+ * administra a própria plataforma.
  */
 export async function getExamGenerationQuota(
   supabase: SupabaseClient<Database>,
   teacherId: string,
+  role: "admin" | "teacher",
 ): Promise<ExamGenerationQuota> {
+  if (role === "admin") return { limit: null, used: 0 };
+
   const now = new Date().toISOString();
 
   const { data: subscription } = await supabase

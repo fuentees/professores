@@ -373,7 +373,7 @@ export async function saveGeneratedExam(input: unknown): Promise<SaveExamResult>
   const data = parsed.data;
 
   const supabase = await createClient();
-  const quota = await getExamGenerationQuota(supabase, profile.id);
+  const quota = await getExamGenerationQuota(supabase, profile.id, profile.role);
   if (quota.limit !== null && quota.used >= quota.limit) {
     return {
       error: `Você atingiu o limite de ${quota.limit} provas geradas este mês. Assine um plano para gerar mais.`,
