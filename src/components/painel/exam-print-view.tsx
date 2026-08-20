@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Printer, Pencil } from "lucide-react";
+import { Printer, Pencil, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import { ExamQuestionBody } from "@/components/painel/exam-question-body";
@@ -33,6 +33,18 @@ export function ExamPrintView({
   printSettings?: PrintSettings;
 }) {
   const [editing, setEditing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownloadWord() {
+    setDownloading(true);
+    try {
+      const { generateExamDocx, downloadBlob } = await import("@/lib/export/exam-docx");
+      const blob = await generateExamDocx(exam, questions, printSettings);
+      downloadBlob(blob, `${exam.title || "prova"}.docx`);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (editing) {
     return (
@@ -72,6 +84,10 @@ export function ExamPrintView({
           >
             <Pencil className="h-4 w-4" />
             Editar
+          </Button>
+          <Button type="button" variant="outline" onClick={handleDownloadWord} disabled={downloading}>
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            Baixar Word
           </Button>
           <Button type="button" onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
