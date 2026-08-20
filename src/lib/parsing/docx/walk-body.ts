@@ -54,8 +54,10 @@ function imageRelIdsInParagraph(p: XmlNode): string[] {
 // cobre a fronteira ENTRE dois runs, nunca dentro do texto de um único run —
 // não é global/stateful, é testado uma vez por par de runs.
 const SENTENCE_END = /[.!?:;)_]/;
-// Maiúscula (nova frase) ou dígito (item numerado, ex.: "pedra.2. Fonte...").
-const NEW_SEGMENT_START = /[A-ZÀ-Ý0-9]/;
+// Maiúscula (nova frase), dígito (item numerado, ex.: "pedra.2. Fonte...") ou
+// abre-parênteses (ex.: "Objeto)(    ) Fonte Oral" — opções de associação
+// coladas uma na outra, cada uma com seu "(   )" de marcar à mão).
+const NEW_SEGMENT_START = /[A-ZÀ-Ý0-9(]/;
 
 function paragraphText(p: XmlNode): string {
   // Cada <w:t> é um run de texto. extractText() desce recursivamente até o

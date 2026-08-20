@@ -83,6 +83,24 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.warnings.some((w) => w.field === "statement")).toBe(true);
   });
 
+  it("remove a linha em branco (___) do fim do enunciado quando não há itens (HIS4-1T-002)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("his4-1t-002.docx"));
+
+    // Sem isso, a prova impressa mostrava a linha crua do Word *e* as linhas
+    // pontilhadas que o sistema já desenha — duas respostas em branco.
+    expect(draft.leadingText).not.toMatch(/_{3,}/);
+    expect(draft.leadingText.endsWith('diferentes?"')).toBe(true);
+  });
+
+  it("separa opções de associação coladas (HIS4-1T-004)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("his4-1t-004.docx"));
+
+    // "...reunida.(   ) Fonte Material (Objeto)(   ) Fonte Oral..." — cada
+    // "(   )" é uma opção pro aluno marcar; sem espaço nenhum entre elas
+    // ficava ilegível na impressão.
+    expect(draft.leadingText).not.toContain("Objeto)(");
+  });
+
   it("extrai imagens e sinaliza .emf como não suportado para preview (HIS4-1T-005)", async () => {
     const { draft, media } = await parseQuestionDocx(loadFixture("his4-1t-005.docx"));
 

@@ -3,6 +3,17 @@ import type { ParsedAnswer, ParsedItem, ParsedRubricRow } from "./types";
 const ITEM_MARKER = /(?:^|\s)([a-eA-E])\)\s*/g;
 /** Sequência de "_" (linha em branco pro aluno responder à mão). */
 const BLANK_LINE = /_{3,}/g;
+/**
+ * Mesma linha em branco, mas só quando está no FINAL do texto (com espaço
+ * opcional antes/depois, podendo repetir) — usada pra limpar o enunciado
+ * quando a questão não tem itens A/B/C. Sem isso, uma questão discursiva de
+ * bloco único ("explique... _______________") mostrava a linha do Word
+ * *e* as linhas pontilhadas que o sistema já desenha por baixo — duas
+ * respostas em branco, uma feia (texto corrido) e uma bonita, empilhadas.
+ * Só remove do FIM (não do meio) pra não arriscar apagar um "____" usado de
+ * propósito como lacuna no meio de uma frase.
+ */
+const TRAILING_BLANK_LINES = /(?:\s*_{3,}\s*)+$/;
 
 /**
  * Divide o texto corrido do enunciado em itens A/B/C quando existirem
@@ -12,7 +23,9 @@ const BLANK_LINE = /_{3,}/g;
  */
 export function extractItems(statementText: string): { items: ParsedItem[]; leadingText: string } {
   const matches = [...statementText.matchAll(ITEM_MARKER)];
-  if (matches.length === 0) return { items: [], leadingText: statementText.trim() };
+  if (matches.length === 0) {
+    return { items: [], leadingText: statementText.replace(TRAILING_BLANK_LINES, "").trim() };
+  }
 
   const leadingText = statementText.slice(0, matches[0].index).trim();
   const items: ParsedItem[] = [];
