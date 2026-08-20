@@ -53,8 +53,16 @@ export function SiteFooter({ supportEmail }: { supportEmail?: string | null }) {
           </div>
         )}
       </div>
-      <div className="border-t px-4 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Portal do Professor. Todos os direitos reservados.
+      <div className="flex flex-col items-center justify-between gap-2 border-t px-4 py-4 text-center text-xs text-muted-foreground sm:flex-row sm:text-left">
+        <span>© {new Date().getFullYear()} Portal do Professor. Todos os direitos reservados.</span>
+        <div className="flex items-center gap-4">
+          <Link href="/termos" className="hover:text-foreground hover:underline">
+            Termos de Uso
+          </Link>
+          <Link href="/privacidade" className="hover:text-foreground hover:underline">
+            Política de Privacidade
+          </Link>
+        </div>
       </div>
     </footer>
   );
