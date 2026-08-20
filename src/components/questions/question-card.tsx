@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { DIFFICULTY_LABELS, BLOOM_TAXONOMY_LABELS, QUESTION_TYPE_LABELS } from "@/lib/labels";
+import { subjectBadgeClassName } from "@/lib/subject-colors";
 import type { QuestionCard as QuestionCardData } from "@/actions/question-bank";
 
 const DIFFICULTY_DOT: Record<string, string> = {
@@ -38,7 +39,9 @@ export function QuestionCard({ question }: { question: QuestionCardData }) {
 
       <div className="mt-auto flex flex-wrap items-center gap-1 text-xs">
         {question.code && <span className="font-mono text-muted-foreground">{question.code}</span>}
-        {question.subjectName && <Badge variant="outline">{question.subjectName}</Badge>}
+        {question.subjectName && (
+          <Badge className={subjectBadgeClassName(question.subjectName)}>{question.subjectName}</Badge>
+        )}
         {question.gradeName && <Badge variant="outline">{question.gradeName}</Badge>}
         {question.bnccCodes.slice(0, 1).map((code) => (
           <Badge key={code} variant="outline" className="border-bncc/30 bg-bncc-soft font-mono text-bncc">

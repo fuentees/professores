@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Download, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { subjectBadgeClassName } from "@/lib/subject-colors";
 
 export type MaterialCardData = {
   slug: string;
@@ -55,7 +56,7 @@ export function MaterialCard({ material }: { material: MaterialCardData }) {
         )}
         <div className="mt-auto flex flex-wrap items-center gap-1 pt-2 text-xs text-muted-foreground">
           {material.subjectNames.slice(0, 1).map((name) => (
-            <Badge key={name} variant="outline">
+            <Badge key={name} className={subjectBadgeClassName(name)}>
               {name}
             </Badge>
           ))}

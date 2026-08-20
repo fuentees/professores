@@ -7,6 +7,7 @@ import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { recordView } from "@/actions/content-access";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { subjectBadgeClassName } from "@/lib/subject-colors";
 import { DownloadButton } from "@/components/materials/download-button";
 import { FavoriteButton } from "@/components/materials/favorite-button";
 import { MaterialCard } from "@/components/materials/material-card";
@@ -118,7 +119,14 @@ export default async function MaterialDetailPage({
       </div>
 
       <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-        {content.content_subjects.map((s) => s.subjects && <Badge key={s.subjects.name} variant="outline">{s.subjects.name}</Badge>)}
+        {content.content_subjects.map(
+          (s) =>
+            s.subjects && (
+              <Badge key={s.subjects.name} className={subjectBadgeClassName(s.subjects.name)}>
+                {s.subjects.name}
+              </Badge>
+            ),
+        )}
         {content.content_grades.map((g) => g.grades && <Badge key={g.grades.name} variant="outline">{g.grades.name}</Badge>)}
         {content.content_themes.map((t) => t.themes && <Badge key={t.themes.name} variant="outline">{t.themes.name}</Badge>)}
       </div>
