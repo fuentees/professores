@@ -9,7 +9,13 @@ import {
   extractHeaderFields,
   splitKnowledgeObjects,
 } from "./extract-fields";
-import { collapseLeadingExactRepeat, extractItems, extractProseAnswers, extractRubricTable } from "./extract-items";
+import {
+  collapseLeadingExactRepeat,
+  extractItems,
+  extractProseAnswers,
+  extractRubricTable,
+  normalizeStatementText,
+} from "./extract-items";
 
 const TEXTO_BASE_HEADING = /^TEXTO\s+[IVX]+/i;
 const QUESTAO_MARKER = /^Quest[ãa]o\b/i;
@@ -143,7 +149,8 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
   // Segundo padrão de duplicação (sem rótulo, bloco colado 2x exatamente) —
   // ver comentário em collapseLeadingExactRepeat.
   const dedupedStatement = collapseLeadingExactRepeat(cleanedStatement);
-  const { items, leadingText } = extractItems(dedupedStatement);
+  const normalizedStatement = normalizeStatementText(dedupedStatement);
+  const { items, leadingText } = extractItems(normalizedStatement);
 
   // ---- Correção: prosa + tabela de rubrica -------------------------------
   const correctionParagraphs = sectioned

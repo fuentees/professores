@@ -102,13 +102,18 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.leadingText.endsWith('diferentes?"')).toBe(true);
   });
 
-  it("separa opções de associação coladas (HIS4-1T-004)", async () => {
+  it("separa opções de associação coladas em linhas próprias (HIS4-1T-004)", async () => {
     const { draft } = await parseQuestionDocx(loadFixture("his4-1t-004.docx"));
 
     // "...reunida.(   ) Fonte Material (Objeto)(   ) Fonte Oral..." — cada
-    // "(   )" é uma opção pro aluno marcar; sem espaço nenhum entre elas
-    // ficava ilegível na impressão.
+    // "(   )" é uma opção pro aluno marcar; sem separação nenhuma entre
+    // elas ficava ilegível na impressão. Cada uma vai pra própria linha.
     expect(draft.leadingText).not.toContain("Objeto)(");
+    expect(draft.leadingText).toMatch(/\n\(\s+\)\s*Fonte Oral/);
+    expect(draft.leadingText.split("\n").filter((l) => l.trim().startsWith("("))).toHaveLength(4);
+    // "família. . Associe" — pontuação duplicada por junção de runs.
+    expect(draft.leadingText).not.toMatch(/([.!?])\s*\1/);
+    expect(draft.leadingText).toContain("família. Associe");
   });
 
   it("extrai imagens e sinaliza .emf como não suportado para preview (HIS4-1T-005)", async () => {

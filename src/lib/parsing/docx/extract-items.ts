@@ -15,6 +15,26 @@ const BLANK_LINE = /_{3,}/g;
  */
 const TRAILING_BLANK_LINES = /(?:\s*_{3,}\s*)+$/;
 
+// Pontuação duplicada por dois runs adjacentes terminando cada um com "."
+// (ex.: "família. . Associe") — nenhuma frase em português real tem ". ."
+// de propósito, é sempre sobra de junção de runs.
+const DOUBLE_PUNCTUATION = /([.!?])\s*\1/g;
+
+// "(    ) Rótulo" repetido — opção de marcar à mão (associação/múltipla
+// marcação) colada direto na anterior, sem quebra nenhuma ("Objeto) (   )
+// Fonte Oral(   ) Fonte Visual..."). Quebra de linha antes de cada uma (2+
+// espaços dentro dos parênteses distingue de anotações reais como "(SP)"
+// ou "(Objeto)", que não têm esse padrão de linha em branco pra marcar).
+const CHECKBOX_OPTION = /\s*(\(\s{2,}\))/g;
+
+/**
+ * Limpezas gerais de pontuação/espaçamento que sobram da extração de runs
+ * do Word — aplicadas ao enunciado inteiro, antes de separar em itens.
+ */
+export function normalizeStatementText(text: string): string {
+  return text.replace(DOUBLE_PUNCTUATION, "$1").replace(CHECKBOX_OPTION, "\n$1");
+}
+
 /**
  * Divide o texto corrido do enunciado em itens A/B/C quando existirem
  * marcadores desse tipo embutidos no texto (não em células de tabela
