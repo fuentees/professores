@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Pin, MessageCircle, Lock } from "lucide-react";
+import { ArrowLeft, Pin, MessageCircle, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { NewTopicForm } from "@/components/forum/new-topic-form";
+import { EmptyState } from "@/components/common/empty-state";
 
 type TopicRow = {
   id: string;
@@ -42,43 +43,45 @@ export default async function ForumCategoryPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
-      <div>
-        <Link href="/forum" className="text-sm text-muted-foreground hover:underline">
-          ← Categorias
+      <div className="space-y-1.5">
+        <Link href="/forum" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-interactive hover:underline">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Categorias
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{category.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{category.name}</h1>
         {category.description && <p className="text-muted-foreground">{category.description}</p>}
       </div>
 
       <NewTopicForm categorySlug={slug} />
 
-      <div className="divide-y rounded-lg border">
-        {(!topics || topics.length === 0) && (
-          <p className="p-6 text-center text-sm text-muted-foreground">Nenhum tópico ainda. Seja o primeiro!</p>
-        )}
-        {topics?.map((topic) => (
-          <Link
-            key={topic.id}
-            href={`/forum/topico/${topic.id}`}
-            className="flex items-center justify-between gap-3 p-4 hover:bg-accent"
-          >
-            <div>
-              <p className="flex items-center gap-2 font-medium">
-                {topic.is_pinned && <Pin className="h-3.5 w-3.5" />}
-                {topic.is_locked && <Lock className="h-3.5 w-3.5" />}
-                {topic.title}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                por {topic.profiles?.full_name || "Professor(a)"} · {new Date(topic.created_at).toLocaleDateString("pt-BR")}
-              </p>
-            </div>
-            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MessageCircle className="h-4 w-4" />
-              {topic.forum_replies[0]?.count ?? 0}
-            </span>
-          </Link>
-        ))}
-      </div>
+      {(!topics || topics.length === 0) ? (
+        <EmptyState icon={MessageCircle} title="Nenhum tópico ainda" description="Seja o primeiro a começar uma discussão." />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {topics.map((topic) => (
+            <Link
+              key={topic.id}
+              href={`/forum/topico/${topic.id}`}
+              className="group flex items-center justify-between gap-3 rounded-xl border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 font-semibold tracking-tight group-hover:underline">
+                  {topic.is_pinned && <Pin className="h-3.5 w-3.5 shrink-0 text-interactive" />}
+                  {topic.is_locked && <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                  <span className="truncate">{topic.title}</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  por {topic.profiles?.full_name || "Professor(a)"} · {new Date(topic.created_at).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-interactive-soft px-2.5 py-1 text-sm font-medium text-interactive">
+                <MessageCircle className="h-3.5 w-3.5" />
+                {topic.forum_replies[0]?.count ?? 0}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

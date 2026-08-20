@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { Newspaper } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Newspaper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BlogPostPage({
@@ -19,18 +20,23 @@ export default async function BlogPostPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
-      <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
+      <Link href="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-highlight hover:underline">
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Blog
+      </Link>
+
+      <div className="relative aspect-video overflow-hidden rounded-xl border bg-gradient-to-br from-highlight-soft to-muted">
         {post.cover_url ? (
           <Image src={post.cover_url} alt={post.title} fill className="object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <Newspaper className="h-10 w-10" />
+          <div className="flex h-full w-full items-center justify-center text-highlight">
+            <Newspaper className="h-10 w-10" strokeWidth={1.5} />
           </div>
         )}
       </div>
 
       <div>
-        <h1 className="text-3xl font-bold">{post.title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{post.title}</h1>
         {post.author && (
           <p className="mt-2 text-sm text-muted-foreground">
             por {post.author}
@@ -42,7 +48,7 @@ export default async function BlogPostPage({
       {post.excerpt && <p className="text-lg text-muted-foreground">{post.excerpt}</p>}
 
       {post.body && (
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">{post.body}</div>
+        <div className="whitespace-pre-wrap text-justify text-sm leading-relaxed">{post.body}</div>
       )}
     </div>
   );
