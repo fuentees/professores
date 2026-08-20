@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { ForumCategoriesManager } from "@/components/admin/forum-categories-manager";
 import { TopicModerationActions } from "@/components/admin/topic-moderation-actions";
+import { PageHeader } from "@/components/common/page-header";
 
 type TopicRow = {
   id: string;
@@ -36,10 +37,7 @@ export default async function ForumAdminPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Fórum</h1>
-        <p className="text-muted-foreground">Modere tópicos e gerencie categorias.</p>
-      </div>
+      <PageHeader title="Fórum" description="Modere tópicos e gerencie categorias." />
 
       <ForumCategoriesManager rows={categories ?? []} />
 

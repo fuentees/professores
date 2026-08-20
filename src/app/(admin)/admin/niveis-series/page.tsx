@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EducationLevelsManager } from "@/components/admin/education-levels-manager";
 import { GradesManager, type GradeRow } from "@/components/admin/grades-manager";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function NiveisSeriesPage() {
   const supabase = await createClient();
@@ -20,12 +21,10 @@ export default async function NiveisSeriesPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Níveis e séries</h1>
-        <p className="text-muted-foreground">
-          Cadastre os níveis de ensino e as séries/anos vinculados a cada um.
-        </p>
-      </div>
+      <PageHeader
+        title="Níveis e séries"
+        description="Cadastre os níveis de ensino e as séries/anos vinculados a cada um."
+      />
 
       <EducationLevelsManager rows={educationLevels ?? []} />
 

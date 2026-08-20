@@ -13,6 +13,7 @@ import {
 import { ContentStatusSelect } from "@/components/admin/content-status-select";
 import { DeleteContentButton } from "@/components/admin/delete-content-button";
 import type { ContentStatus } from "@/types/supabase";
+import { PageHeader } from "@/components/common/page-header";
 
 type ContentListRow = {
   id: string;
@@ -37,23 +38,21 @@ export default async function MateriaisPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Materiais</h1>
-          <p className="text-muted-foreground">
-            Cadastre e publique atividades, avaliações, planos de aula e demais materiais.
-          </p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/admin/materiais/novo">
-              <Plus className="h-4 w-4" />
-              Novo material
-            </Link>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Materiais"
+        description="Cadastre e publique atividades, avaliações, planos de aula e demais materiais."
+        action={
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/admin/materiais/novo">
+                <Plus className="h-4 w-4" />
+                Novo material
+              </Link>
+            }
+          />
+        }
+      />
 
       <div className="rounded-lg border">
         <Table>

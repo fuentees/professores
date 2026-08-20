@@ -11,6 +11,7 @@ import {
   deleteBnccStage,
 } from "@/actions/admin/bncc";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function BnccAdminPage() {
   const supabase = await createClient();
@@ -32,13 +33,10 @@ export default async function BnccAdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">BNCC</h1>
-        <p className="text-muted-foreground">
-          Cadastre etapas, áreas do conhecimento, componentes curriculares e habilidades. Os
-          códigos e descrições devem ser copiados do documento oficial da BNCC — nunca inventados.
-        </p>
-      </div>
+      <PageHeader
+        title="BNCC"
+        description="Cadastre etapas, áreas do conhecimento, componentes curriculares e habilidades. Os códigos e descrições devem ser copiados do documento oficial da BNCC — nunca inventados."
+      />
 
       <Tabs defaultValue="etapas">
         <TabsList>

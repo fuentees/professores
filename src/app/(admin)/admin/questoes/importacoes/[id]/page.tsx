@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,17 @@ type QuestionDetail = {
   }[];
   question_assets: { id: string; storage_path: string; original_name: string }[];
   question_bncc_skills: { bncc_skills: { code: string; description: string } | null }[];
+};
+
+type ExistingQuestionSummary = {
+  id: string;
+  code: string | null;
+  statement: string;
+  difficulty: string;
+  updated_at: string;
+  subjects: { name: string } | null;
+  grades: { name: string } | null;
+  question_parts: { id: string }[];
 };
 
 export default async function ImportReviewPage({
@@ -100,6 +112,25 @@ export default async function ImportReviewPage({
 
   const documentBlocks = question ? await fetchQuestionDocumentBlocks(supabase, question.id) : [];
 
+  // Quando o importador já sinalizou "código duplicado" (ver question-imports.ts),
+  // busca a questão publicada colidente pra comparação lado a lado — sem isso,
+  // o admin só via um aviso em texto e tinha que ir procurar manualmente no
+  // banco de questões pra decidir se mantém, substitui ou rejeita o rascunho.
+  const hasDuplicateCodeWarning = (warnings ?? []).some((w) => w.field === "duplicate_code");
+  let existingQuestion: ExistingQuestionSummary | null = null;
+  if (hasDuplicateCodeWarning && question?.code) {
+    const { data } = await supabase
+      .from("questions")
+      .select("id, code, statement, difficulty, updated_at, subjects(name), grades(name), question_parts(id)")
+      .eq("code", question.code)
+      .eq("publication_status", "published")
+      .neq("id", question.id)
+      .limit(1)
+      .maybeSingle()
+      .returns<ExistingQuestionSummary>();
+    existingQuestion = data;
+  }
+
   const sortedParts = [...(question?.question_parts ?? [])].sort((a, b) => a.order_index - b.order_index);
 
   return (
@@ -131,6 +162,47 @@ export default async function ImportReviewPage({
                 ⚠ {w.message}
               </p>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {existingQuestion && question && (
+        <Card className="border-amber-300 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">Comparar com a questão já publicada</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2 rounded-md border bg-background p-3">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Rascunho importado agora</p>
+              <p className="text-sm font-mono">{question.code}</p>
+              <p className="text-xs text-muted-foreground">
+                {question.subjects?.name ?? "—"} · {question.grades?.name ?? "—"} ·{" "}
+                {DIFFICULTY_LABELS[question.difficulty] ?? question.difficulty} · {sortedParts.length} item(ns)
+              </p>
+              <p className="line-clamp-4 text-justify text-sm">{question.statement}</p>
+            </div>
+            <div className="space-y-2 rounded-md border bg-background p-3">
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">Já publicada</p>
+              <p className="text-sm font-mono">{existingQuestion.code}</p>
+              <p className="text-xs text-muted-foreground">
+                {existingQuestion.subjects?.name ?? "—"} · {existingQuestion.grades?.name ?? "—"} ·{" "}
+                {DIFFICULTY_LABELS[existingQuestion.difficulty] ?? existingQuestion.difficulty} ·{" "}
+                {existingQuestion.question_parts.length} item(ns)
+              </p>
+              <p className="line-clamp-4 text-justify text-sm">{existingQuestion.statement}</p>
+              <Link
+                href={`/admin/questoes/${existingQuestion.id}/editar`}
+                className="inline-block text-sm text-primary underline"
+                target="_blank"
+              >
+                Abrir questão publicada em outra aba →
+              </Link>
+            </div>
+          </CardContent>
+          <CardContent className="pt-0 text-xs text-muted-foreground">
+            Aprovar este rascunho não altera nem substitui a questão publicada acima — as duas ficam
+            coexistindo com o mesmo código. Rejeite o rascunho se for de fato a mesma questão, ou aprove se
+            for uma versão/variação legítima que deve conviver com a outra.
           </CardContent>
         </Card>
       )}

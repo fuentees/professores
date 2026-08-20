@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { InteractiveTypeBadge } from "@/components/interactive/interactive-type-badge";
 import type { LearningActivityType } from "@/lib/validations/interactive-activity";
+import { PageHeader } from "@/components/common/page-header";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -32,21 +33,21 @@ export default async function ObjetosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Objetos de aprendizagem</h1>
-          <p className="text-muted-foreground">Jogos, simulações, quizzes, vídeos e links educacionais.</p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/admin/objetos/novo">
-              <Plus className="h-4 w-4" />
-              Novo objeto
-            </Link>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Objetos de aprendizagem"
+        description="Jogos, simulações, quizzes, vídeos e links educacionais."
+        action={
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/admin/objetos/novo">
+                <Plus className="h-4 w-4" />
+                Novo objeto
+              </Link>
+            }
+          />
+        }
+      />
 
       <div className="rounded-lg border">
         <Table>

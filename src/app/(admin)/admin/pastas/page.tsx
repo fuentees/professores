@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DeleteFolderButton } from "@/components/admin/delete-folder-button";
+import { PageHeader } from "@/components/common/page-header";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -38,24 +39,21 @@ export default async function PastasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Pastas e coleções</h1>
-          <p className="text-muted-foreground">
-            Agrupe materiais por tema, ex: &ldquo;Volta às aulas&rdquo;, &ldquo;Revisão para o
-            SAEB&rdquo;.
-          </p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/admin/pastas/novo">
-              <Plus className="h-4 w-4" />
-              Nova pasta
-            </Link>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Pastas e coleções"
+        description="Agrupe materiais por tema, ex: “Volta às aulas”, “Revisão para o SAEB”."
+        action={
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/admin/pastas/novo">
+                <Plus className="h-4 w-4" />
+                Nova pasta
+              </Link>
+            }
+          />
+        }
+      />
 
       <div className="rounded-lg border">
         <Table>

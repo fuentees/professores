@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ContentTypesManager, type ContentTypeRow } from "@/components/admin/content-types-manager";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function TiposMateriaisPage() {
   const supabase = await createClient();
@@ -10,12 +11,10 @@ export default async function TiposMateriaisPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Tipos de material</h1>
-        <p className="text-muted-foreground">
-          Ex: Atividade, Avaliação, Plano de aula, Simulado, Gabarito...
-        </p>
-      </div>
+      <PageHeader
+        title="Tipos de material"
+        description="Ex: Atividade, Avaliação, Plano de aula, Simulado, Gabarito..."
+      />
 
       <ContentTypesManager rows={(contentTypes ?? []) as ContentTypeRow[]} />
     </div>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { QUESTION_IMPORT_STATUS_LABELS } from "@/lib/labels";
+import { PageHeader } from "@/components/common/page-header";
 
 const STATUS_VARIANT: Record<string, "default" | "outline" | "secondary" | "destructive"> = {
   uploaded: "outline",
@@ -22,10 +23,10 @@ export default async function ImportacoesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Importações</h1>
-        <p className="text-muted-foreground">Histórico de arquivos .docx enviados para o banco de questões.</p>
-      </div>
+      <PageHeader
+        title="Importações"
+        description="Histórico de arquivos .docx enviados para o banco de questões."
+      />
 
       <div className="rounded-lg border">
         <Table>

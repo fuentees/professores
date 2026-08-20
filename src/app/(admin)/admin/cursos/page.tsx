@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/common/page-header";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -29,21 +30,21 @@ export default async function CursosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Cursos</h1>
-          <p className="text-muted-foreground">Cursos de formação para professores.</p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/admin/cursos/novo">
-              <Plus className="h-4 w-4" />
-              Novo curso
-            </Link>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Cursos"
+        description="Cursos de formação para professores."
+        action={
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/admin/cursos/novo">
+                <Plus className="h-4 w-4" />
+                Novo curso
+              </Link>
+            }
+          />
+        }
+      />
 
       <div className="rounded-lg border">
         <Table>

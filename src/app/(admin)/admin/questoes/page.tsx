@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DeleteQuestionButton } from "@/components/admin/delete-question-button";
 import { DIFFICULTY_LABELS, QUESTION_TYPE_LABELS, CONTENT_STATUS_LABELS } from "@/lib/labels";
+import { PageHeader } from "@/components/common/page-header";
 
 type QuestionListRow = {
   id: string;
@@ -30,35 +31,33 @@ export default async function QuestoesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Banco de questões</h1>
-          <p className="text-muted-foreground">
-            Cadastre questões por tema para alimentar o gerador de provas dos professores.
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/admin/questoes/importacoes">Importações</Link>}
-          />
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href="/admin/questoes/importar">Importar Word</Link>}
-          />
-          <Button
-            nativeButton={false}
-            render={
-              <Link href="/admin/questoes/novo">
-                <Plus className="h-4 w-4" />
-                Nova questão
-              </Link>
-            }
-          />
-        </div>
-      </div>
+      <PageHeader
+        title="Banco de questões"
+        description="Cadastre questões por tema para alimentar o gerador de provas dos professores."
+        action={
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/admin/questoes/importacoes">Importações</Link>}
+            />
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/admin/questoes/importar">Importar Word</Link>}
+            />
+            <Button
+              nativeButton={false}
+              render={
+                <Link href="/admin/questoes/novo">
+                  <Plus className="h-4 w-4" />
+                  Nova questão
+                </Link>
+              }
+            />
+          </div>
+        }
+      />
 
       <div className="rounded-lg border">
         <Table>

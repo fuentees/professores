@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { TeacherStatusToggle } from "@/components/admin/teacher-status-toggle";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function ProfessoresPage() {
   const supabase = await createClient();
@@ -21,12 +22,10 @@ export default async function ProfessoresPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Professores</h1>
-        <p className="text-muted-foreground">
-          Gerencie o acesso dos professores cadastrados no portal.
-        </p>
-      </div>
+      <PageHeader
+        title="Professores"
+        description="Gerencie o acesso dos professores cadastrados no portal."
+      />
 
       <div className="rounded-lg border">
         <Table>

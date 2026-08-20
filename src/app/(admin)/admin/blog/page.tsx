@@ -1,4 +1,4 @@
-import Link from "next/link";
+ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { BlogCategoriesManager } from "@/components/admin/blog-categories-manager";
 import { DeleteBlogPostButton } from "@/components/admin/delete-blog-post-button";
+import { PageHeader } from "@/components/common/page-header";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Rascunho",
@@ -31,21 +32,21 @@ export default async function BlogAdminPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Blog</h1>
-          <p className="text-muted-foreground">Artigos para professores.</p>
-        </div>
-        <Button
-          nativeButton={false}
-          render={
-            <Link href="/admin/blog/novo">
-              <Plus className="h-4 w-4" />
-              Novo artigo
-            </Link>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Blog"
+        description="Artigos para professores."
+        action={
+          <Button
+            nativeButton={false}
+            render={
+              <Link href="/admin/blog/novo">
+                <Plus className="h-4 w-4" />
+                Novo artigo
+              </Link>
+            }
+          />
+        }
+      />
 
       <BlogCategoriesManager categories={categories ?? []} />
 

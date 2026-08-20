@@ -7,6 +7,7 @@ import {
 import { ThemesManager, type ThemeRow } from "@/components/admin/themes-manager";
 import { SubthemesManager, type SubthemeRow } from "@/components/admin/subthemes-manager";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function UnidadesTemasPage() {
   const supabase = await createClient();
@@ -28,13 +29,10 @@ export default async function UnidadesTemasPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Unidades, temas e subtemas</h1>
-        <p className="text-muted-foreground">
-          Estrutura em cascata: cada unidade pertence a uma série + disciplina, cada tema a
-          uma unidade, e cada subtema a um tema.
-        </p>
-      </div>
+      <PageHeader
+        title="Unidades, temas e subtemas"
+        description="Estrutura em cascata: cada unidade pertence a uma série + disciplina, cada tema a uma unidade, e cada subtema a um tema."
+      />
 
       <Tabs defaultValue="unidades">
         <TabsList>

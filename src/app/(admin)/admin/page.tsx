@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/common/page-header";
 
 async function getStats() {
   const supabase = await createClient();
@@ -56,10 +57,7 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Visão geral</h1>
-        <p className="text-muted-foreground">Resumo da atividade do portal.</p>
-      </div>
+      <PageHeader title="Visão geral" description="Resumo da atividade do portal." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (

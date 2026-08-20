@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SubjectsManager, type SubjectRow } from "@/components/admin/subjects-manager";
 import { GradeSubjectsManager } from "@/components/admin/grade-subjects-manager";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function DisciplinasPage() {
   const supabase = await createClient();
@@ -20,12 +21,10 @@ export default async function DisciplinasPage() {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Disciplinas</h1>
-        <p className="text-muted-foreground">
-          Cadastre as disciplinas do portal e vincule quais séries as utilizam.
-        </p>
-      </div>
+      <PageHeader
+        title="Disciplinas"
+        description="Cadastre as disciplinas do portal e vincule quais séries as utilizam."
+      />
 
       <SubjectsManager rows={(subjects ?? []) as SubjectRow[]} />
 
