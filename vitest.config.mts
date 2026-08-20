@@ -13,5 +13,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // e2e/ roda via Playwright (npm run test:e2e), não Vitest — sem isso,
+    // o glob padrão do Vitest também pegava os *.spec.ts de lá e quebrava
+    // ("test() from an async test.describe()... only sync supported").
+    exclude: ["**/node_modules/**", "**/e2e/**"],
   },
 });
