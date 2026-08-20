@@ -113,7 +113,12 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
     parts.push(text);
     statementGroups.set(entry.statementGroup, parts);
   }
-  const groupedStatements = [...statementGroups.values()].map((parts) => parts.join(" ").trim()).filter(Boolean);
+  // "\n\n" (não " ") entre parágrafos: cada elemento de `parts` já era um
+  // <w:p> separado no Word original — colar com um espaço só apagava a
+  // quebra de parágrafo e transformava enunciados com base textual longa
+  // (glossário + "TEXTO I" + a pergunta em si) numa parede de texto só.
+  // whitespace-pre-wrap (já usado em ExamQuestionBody) respeita esse "\n".
+  const groupedStatements = [...statementGroups.values()].map((parts) => parts.join("\n\n").trim()).filter(Boolean);
   // De-duplica candidatos idênticos (rascunho colado 2x) mas preserva
   // variações reais (fraseados diferentes) como candidatos separados.
   const statementCandidates = [...new Set(groupedStatements)];

@@ -76,6 +76,16 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(fullLevelRows.every((r) => typeof r.criteria === "string" && r.criteria.length > 0)).toBe(true);
   });
 
+  it("preserva quebra de parágrafo entre blocos de texto-base (HIS4-1T-001_B)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("his4-1t-001-b.docx"));
+
+    // Cada <w:p> do Word original vira um parágrafo próprio no enunciado —
+    // sem isso, o glossário + "TEXTO I" + a história inteira viravam uma
+    // única parede de texto corrida, sem nenhuma quebra visual.
+    expect(draft.leadingText).toContain("TEXTO I\n\nFIM DE SEMANA NA CASA DA VOVÓ");
+    expect(draft.leadingText.split("\n\n").length).toBeGreaterThan(3);
+  });
+
   it("sinaliza quando o documento tem mais de um enunciado candidato (HIS4-1T-002)", async () => {
     const { draft } = await parseQuestionDocx(loadFixture("his4-1t-002.docx"));
 
