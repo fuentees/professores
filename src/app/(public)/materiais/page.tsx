@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { MaterialFilters, type MaterialFiltersData } from "@/components/materials/material-filters";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
@@ -8,6 +9,11 @@ import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { SearchX } from "lucide-react";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Materiais",
+  description: "Planos de aula, avaliações e atividades prontas por disciplina e série.",
+};
 
 const PAGE_SIZE = 12;
 

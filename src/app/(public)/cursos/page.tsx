@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { CourseCard } from "@/components/courses/course-card";
 import { GraduationCap } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Cursos",
+  description: "Formação continuada para professores.",
+};
 
 export default async function CursosPage() {
   const supabase = await createClient();

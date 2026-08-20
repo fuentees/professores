@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ImageOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
@@ -41,6 +42,27 @@ const ACCESS_LABELS: Record<string, string> = {
   teacher_only: "Exclusivo para professores",
   subscriber_only: "Exclusivo para assinantes",
 };
+
+export async function generateMetadata({ params }: PageProps<"/materiais/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: content } = await supabase
+    .from("contents")
+    .select("title, short_description, cover_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!content) return {};
+  return {
+    title: content.title,
+    description: content.short_description ?? undefined,
+    openGraph: {
+      title: content.title,
+      description: content.short_description ?? undefined,
+      images: content.cover_url ? [content.cover_url] : undefined,
+    },
+  };
+}
 
 export default async function MaterialDetailPage({
   params,

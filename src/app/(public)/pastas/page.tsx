@@ -1,7 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Pastas e coleções",
+  description: "Materiais agrupados por tema, prontos pra usar em conjunto.",
+};
 
 export default async function PastasPage() {
   const supabase = await createClient();

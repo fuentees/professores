@@ -1,7 +1,17 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { ArrowLeft, Lock, Pin } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+
+export async function generateMetadata({ params }: PageProps<"/forum/topico/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: topic } = await supabase.from("forum_topics").select("title").eq("id", id).maybeSingle();
+
+  if (!topic) return {};
+  return { title: topic.title };
+}
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { ReplyForm } from "@/components/forum/reply-form";
 import { ReplyItem } from "@/components/forum/reply-item";

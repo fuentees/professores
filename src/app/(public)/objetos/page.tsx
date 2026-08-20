@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { InteractiveHero } from "@/components/interactive/interactive-hero";
 import { InteractiveCategoryNav } from "@/components/interactive/interactive-category-nav";
@@ -14,6 +15,11 @@ import {
 } from "@/lib/interactive/categories";
 import type { LearningActivityType } from "@/lib/validations/interactive-activity";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+
+export const metadata: Metadata = {
+  title: "Recursos interativos",
+  description: "Jogos, quizzes e simulações prontos pra usar em sala de aula.",
+};
 
 type ObjectRow = {
   slug: string;

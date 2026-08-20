@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { ArrowRight, MessageSquare } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+
+export const metadata: Metadata = {
+  title: "Fórum",
+  description: "Tire dúvidas e troque experiências com outros professores.",
+};
 
 export default async function ForumPage() {
   const profile = await getCurrentProfile();

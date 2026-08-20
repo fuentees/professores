@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
@@ -28,6 +29,27 @@ type ObjectDetailRow = {
   subjects: { name: string } | null;
   grades: { name: string } | null;
 };
+
+export async function generateMetadata({ params }: PageProps<"/objetos/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: obj } = await supabase
+    .from("learning_objects")
+    .select("title, description, cover_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!obj) return {};
+  return {
+    title: obj.title,
+    description: obj.description ?? undefined,
+    openGraph: {
+      title: obj.title,
+      description: obj.description ?? undefined,
+      images: obj.cover_url ? [obj.cover_url] : undefined,
+    },
+  };
+}
 
 export default async function LearningObjectDetailPage({
   params,

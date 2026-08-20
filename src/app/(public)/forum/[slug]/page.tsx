@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { ArrowLeft, Pin, MessageCircle, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { NewTopicForm } from "@/components/forum/new-topic-form";
 import { EmptyState } from "@/components/common/empty-state";
+
+export async function generateMetadata({ params }: PageProps<"/forum/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: category } = await supabase.from("forum_categories").select("name, description").eq("slug", slug).maybeSingle();
+
+  if (!category) return {};
+  return { title: category.name, description: category.description ?? undefined };
+}
 
 type TopicRow = {
   id: string;

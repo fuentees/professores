@@ -1,9 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { Newspaper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+
+export const metadata: Metadata = {
+  title: "Blog",
+  description: "Práticas pedagógicas, BNCC, avaliação e formação docente.",
+};
 
 export default async function BlogPage() {
   const supabase = await createClient();

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Check, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
@@ -6,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+
+export const metadata: Metadata = {
+  title: "Planos",
+  description: "Escolha o plano que melhor atende às suas necessidades.",
+};
 
 const BILLING_LABELS: Record<string, string> = {
   free: "grátis",

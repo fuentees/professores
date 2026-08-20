@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
@@ -19,6 +20,27 @@ type FolderContentRow = {
     content_content_types: { content_types: { name: string } | null }[];
   } | null;
 };
+
+export async function generateMetadata({ params }: PageProps<"/pastas/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: folder } = await supabase
+    .from("folders")
+    .select("title, description, cover_url")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!folder) return {};
+  return {
+    title: folder.title,
+    description: folder.description ?? undefined,
+    openGraph: {
+      title: folder.title,
+      description: folder.description ?? undefined,
+      images: folder.cover_url ? [folder.cover_url] : undefined,
+    },
+  };
+}
 
 export default async function FolderDetailPage({
   params,

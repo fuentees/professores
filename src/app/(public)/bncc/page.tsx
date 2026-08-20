@@ -1,10 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { escapeOrFilterValue } from "@/lib/supabase/or-filter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { BnccSearchForm } from "@/components/bncc/bncc-search-form";
+
+export const metadata: Metadata = {
+  title: "BNCC",
+  description: "Consulte habilidades da Base Nacional Comum Curricular por etapa e componente.",
+};
 
 type SkillRow = {
   id: string;
