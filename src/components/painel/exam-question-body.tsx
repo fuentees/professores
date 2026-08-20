@@ -41,13 +41,27 @@ export function ExamQuestionBody({
 
   return (
     <>
-      <p className="whitespace-pre-wrap break-words font-medium">{question.statement}</p>
+      <p className="whitespace-pre-wrap break-words text-justify font-medium">{question.statement}</p>
+
+      {question.images.length > 0 && (
+        <div className="flex flex-col gap-2 pl-1">
+          {question.images.map((image, i) => (
+            // eslint-disable-next-line @next/next/no-img-element -- URL assinada dinâmica (ver exam-print-view.tsx, mesmo padrão da logo)
+            <img
+              key={i}
+              src={image.url}
+              alt={image.altText ?? `Imagem da questão ${i + 1}`}
+              className="max-h-72 w-auto max-w-full rounded-md border object-contain print:max-h-56"
+            />
+          ))}
+        </div>
+      )}
 
       {question.parts.length > 0 && (
         <div className={`flex flex-col gap-5 pl-1 ${bodyTone}`}>
           {question.parts.map((part) => (
             <div key={part.id}>
-              <p className="whitespace-pre-wrap break-words">
+              <p className="whitespace-pre-wrap break-words text-justify">
                 <span className="font-semibold text-foreground">{part.label}) </span>
                 {part.prompt}
               </p>

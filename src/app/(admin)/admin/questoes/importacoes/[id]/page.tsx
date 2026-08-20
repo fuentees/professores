@@ -192,7 +192,7 @@ export default async function ImportReviewPage({
               <CardTitle className="text-base">Questão</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <p className="whitespace-pre-wrap text-sm">{question.statement}</p>
+              <p className="whitespace-pre-wrap text-justify text-sm">{question.statement}</p>
               {sortedParts.map((part) => (
                 <div key={part.id} className="rounded-md border p-3 text-sm">
                   <p className="font-medium">Item {part.label}</p>

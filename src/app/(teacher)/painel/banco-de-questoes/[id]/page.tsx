@@ -74,7 +74,7 @@ export default async function QuestionDetailPage({
       )}
 
       <div className="rounded-lg border p-4">
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{question.statement}</p>
+        <p className="whitespace-pre-wrap text-justify text-sm leading-relaxed">{question.statement}</p>
         {question.parts.length > 0 && (
           <div className="mt-4 flex flex-col gap-3">
             {question.parts.map((part) => (

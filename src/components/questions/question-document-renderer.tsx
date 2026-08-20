@@ -45,7 +45,7 @@ export function QuestionDocumentRenderer({ blocks }: { blocks: QuestionDocumentB
             );
           case "paragraph":
             return (
-              <p key={i} className="whitespace-pre-wrap text-sm leading-relaxed">
+              <p key={i} className="whitespace-pre-wrap text-justify text-sm leading-relaxed">
                 {group.text}
               </p>
             );

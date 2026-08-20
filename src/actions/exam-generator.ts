@@ -20,6 +20,11 @@ export type ExamQuestion = {
   // única opção era mostrar o `statement` bruto inteiro (que pode vir com
   // formatação corrida do .docx original), sem separar os itens.
   parts: { id: string; label: string; prompt: string; orderIndex: number }[];
+  // Imagens de conteúdo do .docx original (question_document_blocks +
+  // question_assets) — extraídas pelo importador desde uma sessão anterior,
+  // mas nunca chegavam ao gerador de provas: uma questão com foto (ex.:
+  // "observe a imagem a seguir") aparecia sem a imagem em lugar nenhum.
+  images: { url: string; altText: string | null }[];
 };
 
 type DifficultyBuckets = { easy: number; medium: number; hard: number };
@@ -121,13 +126,91 @@ async function pickQuestionIds(
   return shuffle(ids).slice(0, params.count);
 }
 
+// .emf/.wmf (metarquivos do Windows) não renderizam em nenhum navegador nem
+// no Word — mesmo tratamento de question-document-blocks.ts (painel do
+// professor), aqui aplicado às imagens que entram no gerador de provas.
+const UNSUPPORTED_IMAGE_EXTENSIONS = [".emf", ".wmf"];
+
+/**
+ * Imagens de conteúdo por questão, na ordem em que apareciam no documento
+ * original — só da base_text/statement (nunca da seção de correção, que
+ * pode ter imagens só relevantes pro gabarito/rubrica do admin, nunca pra
+ * prova impressa/exportada pro aluno).
+ */
+async function fetchQuestionImages(
+  admin: ReturnType<typeof createAdminClient>,
+  ids: string[],
+): Promise<Map<string, { url: string; altText: string | null }[]>> {
+  const result = new Map<string, { url: string; altText: string | null }[]>();
+  if (ids.length === 0) return result;
+
+  const { data: blocks } = await admin
+    .from("question_document_blocks")
+    .select("question_id, section, content, order_index")
+    .in("question_id", ids)
+    .eq("block_type", "image")
+    .neq("section", "correction")
+    .order("order_index");
+  if (!blocks || blocks.length === 0) return result;
+
+  const assetIds = [
+    ...new Set(
+      blocks
+        .map((b) => (b.content as { assetId?: string } | null)?.assetId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (assetIds.length === 0) return result;
+
+  const { data: assets } = await admin
+    .from("question_assets")
+    .select("id, storage_path, alt_text")
+    .in("id", assetIds);
+  const assetById = new Map((assets ?? []).map((a) => [a.id, a]));
+
+  const paths = (assets ?? [])
+    .filter((a) => !UNSUPPORTED_IMAGE_EXTENSIONS.some((ext) => a.storage_path.toLowerCase().endsWith(ext)))
+    .map((a) => a.storage_path);
+
+  const signedByPath = new Map<string, string>();
+  if (paths.length > 0) {
+    const { data: signed } = await admin.storage.from("private").createSignedUrls(paths, 3600);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) signedByPath.set(s.path, s.signedUrl);
+    }
+  }
+
+  // Documentos com um rascunho de questão colado duas/três vezes (ver
+  // MID_DRAFT_MARKER/collapseLeadingExactRepeat em extract.ts, que já
+  // resolve isso pro texto do enunciado) repetem a MESMA imagem em cada
+  // cópia — sem dedupe aqui, a mesma foto apareceria 2-3x seguidas na
+  // prova. Uma linha por questão+assetId, na ordem da primeira aparição.
+  const seenPerQuestion = new Map<string, Set<string>>();
+  for (const block of blocks) {
+    const assetId = (block.content as { assetId?: string } | null)?.assetId;
+    const asset = assetId ? assetById.get(assetId) : undefined;
+    const url = asset ? signedByPath.get(asset.storage_path) : undefined;
+    if (!asset || !url || !assetId) continue;
+
+    const seen = seenPerQuestion.get(block.question_id) ?? new Set<string>();
+    if (seen.has(assetId)) continue;
+    seen.add(assetId);
+    seenPerQuestion.set(block.question_id, seen);
+
+    const list = result.get(block.question_id) ?? [];
+    list.push({ url, altText: asset.alt_text });
+    result.set(block.question_id, list);
+  }
+  return result;
+}
+
 async function hydrateQuestions(
   admin: ReturnType<typeof createAdminClient>,
   ids: string[],
 ): Promise<ExamQuestion[]> {
   if (ids.length === 0) return [];
 
-  const [{ data: questions }, { data: alternatives }, { data: answers }, { data: allParts }] = await Promise.all([
+  const [{ data: questions }, { data: alternatives }, { data: answers }, { data: allParts }, imagesByQuestion] = await Promise.all([
     admin.from("questions").select("id, statement, question_type, difficulty, answer_key").in("id", ids),
     admin
       .from("question_alternatives")
@@ -145,6 +228,7 @@ async function hydrateQuestions(
       .select("id, question_id, label, prompt, order_index")
       .in("question_id", ids)
       .order("order_index"),
+    fetchQuestionImages(admin, ids),
   ]);
 
   const partById = new Map((allParts ?? []).map((p) => [p.id, p]));
@@ -181,6 +265,7 @@ async function hydrateQuestions(
       difficulty: q.difficulty,
       answerKey: q.answer_key ?? fallbackAnswer,
       parts: (partsByQuestion.get(q.id) ?? []).sort((a, b) => a.orderIndex - b.orderIndex),
+      images: imagesByQuestion.get(q.id) ?? [],
       alternatives: (alternatives ?? [])
         .filter((a) => a.question_id === q.id)
         .map((a) => ({ id: a.id, label: a.label, body: a.body, isCorrect: a.is_correct })),

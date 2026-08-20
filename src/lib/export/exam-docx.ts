@@ -1,4 +1,4 @@
-import { BorderStyle, Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from "docx";
+import { AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, Packer, Paragraph, TextRun } from "docx";
 import type { ExamQuestion, GeneratedExamDetail } from "@/actions/exam-generator";
 
 const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
@@ -8,6 +8,7 @@ const DIFFICULTY_LABELS: Record<ExamQuestion["difficulty"], string> = {
 };
 
 type PrintSettings = { schoolLogoUrl: string | null; schoolPhone: string | null };
+type DocxImageType = "png" | "jpg" | "gif" | "bmp";
 
 async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
   try {
@@ -17,6 +18,77 @@ async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
   } catch {
     return null;
   }
+}
+
+/** Magic bytes — o Word aceita png/jpg/gif/bmp como conteúdo real de questão (.emf/.wmf já são filtrados antes de chegar aqui, ver fetchQuestionImages em exam-generator.ts). */
+function detectImageType(bytes: Uint8Array): DocxImageType | null {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "gif";
+  if (bytes[0] === 0x42 && bytes[1] === 0x4d) return "bmp";
+  return null;
+}
+
+/**
+ * Lê largura/altura sem depender de nenhuma lib de imagem (evita puxar um
+ * pacote com dependência de "fs" pro bundle do navegador, onde este módulo
+ * roda via import dinâmico) — só o necessário pra não distorcer a imagem ao
+ * redimensionar pro documento: cabeçalho PNG (IHDR) e marcador SOF do JPEG.
+ */
+function getImageDimensions(bytes: Uint8Array, type: DocxImageType): { width: number; height: number } | null {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (type === "png" && bytes.length >= 24) {
+    return { width: view.getUint32(16, false), height: view.getUint32(20, false) };
+  }
+  if (type === "jpg") {
+    let offset = 2;
+    while (offset + 9 < bytes.length) {
+      if (bytes[offset] !== 0xff) {
+        offset++;
+        continue;
+      }
+      const marker = bytes[offset + 1];
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+        offset += 2;
+        continue;
+      }
+      const segmentLength = view.getUint16(offset + 2, false);
+      const isStartOfFrame = marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+      if (isStartOfFrame) {
+        return { height: view.getUint16(offset + 5, false), width: view.getUint16(offset + 7, false) };
+      }
+      offset += 2 + segmentLength;
+    }
+  }
+  if (type === "bmp" && bytes.length >= 26) {
+    return { width: view.getInt32(18, true), height: Math.abs(view.getInt32(22, true)) };
+  }
+  return null;
+}
+
+const MAX_IMAGE_WIDTH_PX = 420;
+
+async function imageParagraph(image: { url: string; altText: string | null }): Promise<Paragraph | null> {
+  const bytes = await fetchImageBytes(image.url);
+  if (!bytes) return null;
+  const type = detectImageType(bytes);
+  if (!type) return null;
+  const dims = getImageDimensions(bytes, type);
+  const width = dims?.width && dims.width > 0 ? dims.width : MAX_IMAGE_WIDTH_PX;
+  const height = dims?.height && dims.height > 0 ? dims.height : Math.round((MAX_IMAGE_WIDTH_PX * 2) / 3);
+  const scale = width > MAX_IMAGE_WIDTH_PX ? MAX_IMAGE_WIDTH_PX / width : 1;
+
+  return new Paragraph({
+    spacing: { before: 80, after: 120 },
+    children: [
+      new ImageRun({
+        data: bytes,
+        type,
+        transformation: { width: Math.round(width * scale), height: Math.round(height * scale) },
+        altText: { name: "Imagem da questão", description: image.altText ?? "Imagem da questão" },
+      }),
+    ],
+  });
 }
 
 /** Linhas pontilhadas pro aluno escrever — mesma ideia das AnswerLines da impressão em HTML. */
@@ -39,18 +111,28 @@ function textBlockParagraphs(text: string, firstRunPrefix?: TextRun): Paragraph[
     const runs: TextRun[] = [];
     if (i === 0 && firstRunPrefix) runs.push(firstRunPrefix);
     runs.push(new TextRun({ text: block.trim() }));
-    return new Paragraph({ spacing: { before: i === 0 ? 0 : 120, after: 80 }, children: runs });
+    return new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { before: i === 0 ? 0 : 120, after: 80 },
+      children: runs,
+    });
   });
 }
 
-function questionParagraphs(question: ExamQuestion, index: number): Paragraph[] {
+async function questionParagraphs(question: ExamQuestion, index: number): Promise<Paragraph[]> {
   const paragraphs: Paragraph[] = [
     ...textBlockParagraphs(question.statement, new TextRun({ text: `${index + 1}. `, bold: true })),
   ];
 
+  for (const image of question.images) {
+    const paragraph = await imageParagraph(image);
+    if (paragraph) paragraphs.push(paragraph);
+  }
+
   for (const part of question.parts) {
     paragraphs.push(
       new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
         indent: { left: 240 },
         spacing: { before: 120, after: 60 },
         children: [new TextRun({ text: `${part.label}) `, bold: true }), new TextRun({ text: part.prompt })],
@@ -150,9 +232,9 @@ export async function generateExamDocx(
     );
   }
 
-  questions.forEach((question, index) => {
-    children.push(...questionParagraphs(question, index));
-  });
+  for (let index = 0; index < questions.length; index++) {
+    children.push(...(await questionParagraphs(questions[index], index)));
+  }
 
   if (exam.showAnswerKey) {
     children.push(
