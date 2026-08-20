@@ -3,6 +3,7 @@ import { Crown, GraduationCap, type LucideIcon } from "lucide-react";
 import { UserMenu } from "@/components/layout/user-menu";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
 import { DashboardMobileNav } from "@/components/layout/dashboard-mobile-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { CurrentProfile } from "@/lib/auth/get-current-profile";
 
 export type DashboardNavItem = {
@@ -91,13 +92,15 @@ export function DashboardShell({
         <header className="flex h-16 items-center gap-2 border-b bg-card px-4 print:hidden lg:hidden">
           <DashboardMobileNav items={items} bottomItems={bottomItems} activeClassName={activeClassName} />
           {logo}
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <UserMenu profile={profile} />
           </div>
         </header>
 
         {/* Barra desktop */}
-        <header className="hidden h-16 items-center justify-end border-b bg-card px-4 print:hidden lg:flex">
+        <header className="hidden h-16 items-center justify-end gap-2 border-b bg-card px-4 print:hidden lg:flex">
+          <ThemeToggle />
           <UserMenu profile={profile} />
         </header>
 

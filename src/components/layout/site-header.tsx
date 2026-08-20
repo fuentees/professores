@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/layout/user-menu";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { NavMenu } from "@/components/layout/nav-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Nav flat pra mobile (sheet) — todos os destinos, sem agrupamento (lista
 // simples já é o padrão certo em mobile).
@@ -66,6 +67,7 @@ export async function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {profile ? (
             <UserMenu profile={profile} />
           ) : (
