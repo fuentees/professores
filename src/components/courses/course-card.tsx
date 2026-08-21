@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Clock, GraduationCap, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { courseCover } from "@/lib/content-cover";
 
 export type CourseCardData = {
   slug: string;
@@ -16,14 +17,16 @@ export type CourseCardData = {
 // (shadow-sm já em repouso, radius maior, capa com overlay) pra parecer um
 // curso completo, não um arquivo pra baixar.
 export function CourseCard({ course }: { course: CourseCardData }) {
+  const coverUrl = course.cover_url ?? courseCover(course.slug);
+
   return (
     <Link
       href={`/cursos/${course.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/8"
     >
       <div className="relative aspect-video bg-gradient-to-br from-primary/15 to-primary/5">
-        {course.cover_url ? (
-          <Image src={course.cover_url} alt={course.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        {coverUrl ? (
+          <Image src={coverUrl} alt={course.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-primary/60">
             <GraduationCap className="h-10 w-10" strokeWidth={1.5} />

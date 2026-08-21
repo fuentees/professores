@@ -5,6 +5,7 @@ import { Newspaper } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { blogCover } from "@/lib/content-cover";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -33,8 +34,8 @@ export default async function BlogPage() {
               className="group flex flex-col overflow-hidden rounded-xl border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="relative aspect-video bg-gradient-to-br from-highlight-soft to-muted">
-                {post.cover_url ? (
-                  <Image src={post.cover_url} alt={post.title} fill className="object-cover" />
+                {post.cover_url || blogCover(post.slug) ? (
+                  <Image src={post.cover_url ?? blogCover(post.slug)} alt={post.title} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-highlight">
                     <Newspaper className="h-9 w-9" strokeWidth={1.5} />

@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ImageOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { recordView } from "@/actions/content-access";
@@ -15,6 +14,7 @@ import { MaterialCard } from "@/components/materials/material-card";
 import { SectionHeader } from "@/components/common/section-header";
 import { fetchRelatedContentCards } from "@/lib/queries/content-cards";
 import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
+import { contentCover } from "@/lib/content-cover";
 
 type ContentDetail = {
   id: string;
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps<"/materiais/[slug]"
     openGraph: {
       title: content.title,
       description: content.short_description ?? undefined,
-      images: content.cover_url ? [content.cover_url] : undefined,
+      images: [content.cover_url ?? contentCover(slug)],
     },
   };
 }
@@ -88,6 +88,8 @@ export default async function MaterialDetailPage({
     .returns<ContentDetail>();
 
   if (!content) notFound();
+
+  const coverUrl = content.cover_url ?? contentCover(slug);
 
   await recordView(content.id);
 
@@ -119,13 +121,7 @@ export default async function MaterialDetailPage({
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        {content.cover_url ? (
-          <Image src={content.cover_url} alt={content.title} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <ImageOff className="h-10 w-10" />
-          </div>
-        )}
+        <Image src={coverUrl} alt={content.title} fill className="object-cover" priority />
       </div>
 
       <div className="flex flex-wrap gap-2">

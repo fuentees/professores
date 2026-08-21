@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { CheckCircle2, Circle, GraduationCap } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Badge } from "@/components/ui/badge";
+import { courseCover } from "@/lib/content-cover";
 
 export async function generateMetadata({ params }: PageProps<"/cursos/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/cursos/[slug]">):
     openGraph: {
       title: course.title,
       description: course.description ?? undefined,
-      images: course.cover_url ? [course.cover_url] : undefined,
+      images: [course.cover_url ?? courseCover(slug)],
     },
   };
 }
@@ -50,6 +51,8 @@ export default async function CourseDetailPage({
 
   if (!course) notFound();
 
+  const coverUrl = course.cover_url ?? courseCover(slug);
+
   const { data: modules } = await supabase
     .from("course_modules")
     .select("id, title, order_index, course_lessons(id, title, duration_minutes, status)")
@@ -70,13 +73,7 @@ export default async function CourseDetailPage({
   return (
     <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-10">
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        {course.cover_url ? (
-          <Image src={course.cover_url} alt={course.title} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <GraduationCap className="h-10 w-10" />
-          </div>
-        )}
+        <Image src={coverUrl} alt={course.title} fill className="object-cover" priority />
       </div>
 
       <div>

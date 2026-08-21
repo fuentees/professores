@@ -12,6 +12,7 @@ import { ActivityPlayer } from "@/components/interactive/activity-player";
 import { InteractiveDetailHero } from "@/components/interactive/interactive-detail-hero";
 import { getCategoryMeta } from "@/lib/interactive/categories";
 import { interactiveActivitySchema, type LearningActivityType } from "@/lib/validations/interactive-activity";
+import { learningObjectCover } from "@/lib/content-cover";
 
 type ObjectDetailRow = {
   id: string;
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: PageProps<"/objetos/[slug]">)
     openGraph: {
       title: obj.title,
       description: obj.description ?? undefined,
-      images: obj.cover_url ? [obj.cover_url] : undefined,
+      images: [obj.cover_url ?? learningObjectCover(slug)],
     },
   };
 }
@@ -70,6 +71,8 @@ export default async function LearningObjectDetailPage({
     .returns<ObjectDetailRow>();
 
   if (!obj) notFound();
+
+  const coverUrl = obj.cover_url ?? learningObjectCover(slug);
 
   const canOpen = await canAccessResource(supabase, profile, { accessType: obj.access_type as ResourceAccessType });
 
@@ -106,7 +109,7 @@ export default async function LearningObjectDetailPage({
           title={obj.title}
           description={obj.description}
           activityType={activityType}
-          coverUrl={obj.cover_url}
+          coverUrl={coverUrl}
           subjectName={obj.subjects?.name ?? null}
           gradeName={obj.grades?.name ?? null}
           difficulty={obj.difficulty}
@@ -133,7 +136,7 @@ export default async function LearningObjectDetailPage({
   // jogo, mas com a mesma correção de tamanho de capa (nunca full-bleed).
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
-      <InteractiveCover activityType={null} coverUrl={obj.cover_url} title={obj.title} size="hero" />
+      <InteractiveCover activityType={null} coverUrl={coverUrl} title={obj.title} size="hero" />
 
       <div className="flex flex-wrap gap-2">
         <Badge variant="outline">{obj.object_type}</Badge>

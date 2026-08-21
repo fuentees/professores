@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bookmark, Download, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { subjectBadgeClassName } from "@/lib/subject-colors";
+import { contentCover } from "@/lib/content-cover";
 
 export type MaterialCardData = {
   slug: string;
@@ -25,14 +26,16 @@ const ACCESS_LABELS: Record<string, string> = {
 };
 
 export function MaterialCard({ material }: { material: MaterialCardData }) {
+  const coverUrl = material.cover_url ?? contentCover(material.slug);
+
   return (
     <Link
       href={`/materiais/${material.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/8"
     >
       <div className="relative aspect-[16/7.5] overflow-hidden bg-muted">
-        {material.cover_url ? (
-          <Image src={material.cover_url} alt={material.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+        {coverUrl ? (
+          <Image src={coverUrl} alt={material.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <ImageOff className="h-8 w-8" />

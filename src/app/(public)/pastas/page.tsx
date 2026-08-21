@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/common/page-header";
+import { folderCover } from "@/lib/content-cover";
 
 export const metadata: Metadata = {
   title: "Pastas e coleções",
@@ -35,8 +36,8 @@ export default async function PastasPage() {
             className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/8"
           >
             <div className="relative aspect-video bg-muted">
-              {folder.cover_url ? (
-                <Image src={folder.cover_url} alt={folder.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+              {folder.cover_url || folderCover(folder.slug) ? (
+                <Image src={folder.cover_url ?? folderCover(folder.slug)} alt={folder.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                   <FolderOpen className="h-8 w-8" />

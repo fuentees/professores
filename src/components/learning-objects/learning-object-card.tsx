@@ -4,6 +4,7 @@ import { LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { LearningActivityTypeDb } from "@/types/supabase";
 import { InteractiveCard } from "@/components/interactive/interactive-card";
+import { learningObjectCover } from "@/lib/content-cover";
 
 export type LearningObjectCardData = {
   slug: string;
@@ -31,7 +32,7 @@ export function LearningObjectCard({ object }: { object: LearningObjectCardData 
           slug: object.slug,
           title: object.title,
           description: object.description,
-          coverUrl: object.cover_url,
+          coverUrl: object.cover_url ?? learningObjectCover(object.slug),
           activityType: object.activity_type,
           subjectName: object.subject_name,
           gradeName: object.grade_name,
@@ -40,14 +41,16 @@ export function LearningObjectCard({ object }: { object: LearningObjectCardData 
     );
   }
 
+  const coverUrl = object.cover_url ?? learningObjectCover(object.slug);
+
   return (
     <Link
       href={`/objetos/${object.slug}`}
       className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
     >
       <div className="relative aspect-video bg-muted">
-        {object.cover_url ? (
-          <Image src={object.cover_url} alt={object.title} fill className="object-cover" />
+        {coverUrl ? (
+          <Image src={coverUrl} alt={object.title} fill className="object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <LayoutGrid className="h-10 w-10" strokeWidth={1.5} />

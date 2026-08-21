@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import type { Metadata } from "next";
-import { FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MaterialCard, type MaterialCardData } from "@/components/materials/material-card";
 import { isRecentlyCreated } from "@/lib/dates";
+import { folderCover } from "@/lib/content-cover";
 
 type FolderContentRow = {
   contents: {
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps<"/pastas/[slug]">):
     openGraph: {
       title: folder.title,
       description: folder.description ?? undefined,
-      images: folder.cover_url ? [folder.cover_url] : undefined,
+      images: [folder.cover_url ?? folderCover(slug)],
     },
   };
 }
@@ -55,6 +55,8 @@ export default async function FolderDetailPage({
     .maybeSingle();
 
   if (!folder) notFound();
+
+  const coverUrl = folder.cover_url ?? folderCover(slug);
 
   const { data: items } = await supabase
     .from("folder_contents")
@@ -91,13 +93,7 @@ export default async function FolderDetailPage({
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
       <div className="relative aspect-[3/1] overflow-hidden rounded-lg border bg-muted">
-        {folder.cover_url ? (
-          <Image src={folder.cover_url} alt={folder.title} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <FolderOpen className="h-10 w-10" />
-          </div>
-        )}
+        <Image src={coverUrl} alt={folder.title} fill className="object-cover" priority />
       </div>
 
       <div>

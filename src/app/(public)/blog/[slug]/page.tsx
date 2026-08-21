@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowLeft, Newspaper } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { blogCover } from "@/lib/content-cover";
 
 export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): P
     openGraph: {
       title: post.title,
       description: post.excerpt ?? undefined,
-      images: post.cover_url ? [post.cover_url] : undefined,
+      images: [post.cover_url ?? blogCover(slug)],
     },
   };
 }
@@ -40,6 +41,8 @@ export default async function BlogPostPage({
 
   if (!post) notFound();
 
+  const coverUrl = post.cover_url ?? blogCover(slug);
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10">
       <Link href="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-highlight hover:underline">
@@ -48,13 +51,7 @@ export default async function BlogPostPage({
       </Link>
 
       <div className="relative aspect-video overflow-hidden rounded-xl border bg-gradient-to-br from-highlight-soft to-muted">
-        {post.cover_url ? (
-          <Image src={post.cover_url} alt={post.title} fill className="object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-highlight">
-            <Newspaper className="h-10 w-10" strokeWidth={1.5} />
-          </div>
-        )}
+        <Image src={coverUrl} alt={post.title} fill className="object-cover" priority />
       </div>
 
       <div>

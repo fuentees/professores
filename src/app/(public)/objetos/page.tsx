@@ -15,6 +15,7 @@ import {
 } from "@/lib/interactive/categories";
 import type { LearningActivityType } from "@/lib/validations/interactive-activity";
 import { sortGradesByLevel } from "@/lib/pedagogical-order";
+import { learningObjectCover } from "@/lib/content-cover";
 
 export const metadata: Metadata = {
   title: "Recursos interativos",
@@ -76,7 +77,7 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
     slug: o.slug,
     title: o.title,
     description: o.description,
-    coverUrl: o.cover_url,
+    coverUrl: o.cover_url ?? learningObjectCover(o.slug),
     activityType: o.activity_type as LearningActivityType,
     subjectName: o.subjects?.name ?? null,
     gradeName: o.grades?.name ?? null,
