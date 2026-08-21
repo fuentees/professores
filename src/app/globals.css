@@ -213,6 +213,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 8% 16%, color-mix(in oklch, var(--primary) 8%, transparent) 0 1px, transparent 2px),
+      radial-gradient(circle at 92% 10%, color-mix(in oklch, var(--assessment) 7%, transparent) 0 1px, transparent 2px);
+    background-size: 34px 34px, 42px 42px;
   }
   html {
     @apply font-sans;
@@ -221,5 +225,36 @@
   h2,
   h3 {
     @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .editorial-surface {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .editorial-surface::before,
+  .editorial-surface::after {
+    position: absolute;
+    z-index: -1;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 999px;
+    content: "";
+    pointer-events: none;
+    filter: blur(1px);
+  }
+
+  .editorial-surface::before {
+    top: -9rem;
+    right: -7rem;
+    background: color-mix(in oklch, var(--primary) 8%, transparent);
+  }
+
+  .editorial-surface::after {
+    bottom: 8rem;
+    left: -12rem;
+    background: color-mix(in oklch, var(--assessment) 9%, transparent);
   }
 }

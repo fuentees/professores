@@ -34,39 +34,41 @@ export async function SiteHeader() {
   const profile = await getCurrentProfile();
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+    <header className="sticky top-0 z-40 border-b border-primary-foreground/15 bg-primary text-primary-foreground shadow-[0_8px_30px_rgba(180,55,30,0.12)]">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-2">
           <MobileNav links={MOBILE_NAV_LINKS} />
-          <Link href="/" className="flex items-center gap-2.5 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-interactive text-primary-foreground shadow-sm">
-              <GraduationCap className="h-4.5 w-4.5" strokeWidth={2} />
+          <Link href="/" className="flex items-center gap-2.5 font-semibold leading-none">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary-foreground/30 bg-primary-foreground/10 shadow-sm">
+              <GraduationCap className="h-6 w-6" strokeWidth={1.8} />
             </span>
-            <span className="text-base tracking-tight">Portal do Professor</span>
+            <span className="hidden text-[15px] tracking-tight sm:block">
+              Portal do<br /><span className="text-lg">Professor</span>
+            </span>
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
-          <Link href="/" className="transition-colors hover:text-primary">
+        <nav className="hidden items-center gap-5 text-sm font-medium text-primary-foreground/85 lg:flex">
+          <Link href="/" className="transition-colors hover:text-primary-foreground">
             Início
           </Link>
           <NavMenu label="Explorar" links={EXPLORAR_LINKS} />
-          <Link href="/objetos" className="transition-colors hover:text-primary">
+          <Link href="/objetos" className="transition-colors hover:text-primary-foreground">
             Recursos interativos
           </Link>
-          <Link href="/cursos" className="transition-colors hover:text-primary">
+          <Link href="/cursos" className="transition-colors hover:text-primary-foreground">
             Cursos
           </Link>
-          <Link href="/bncc" className="transition-colors hover:text-primary">
+          <Link href="/bncc" className="transition-colors hover:text-primary-foreground">
             BNCC
           </Link>
           <NavMenu label="Comunidade" links={COMUNIDADE_LINKS} />
-          <Link href="/planos" className="transition-colors hover:text-primary">
+          <Link href="/planos" className="transition-colors hover:text-primary-foreground">
             Planos
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 [&_button]:text-primary-foreground [&_button:hover]:bg-primary-foreground/12">
           <div className="hidden sm:block">
             <ThemeToggle />
           </div>

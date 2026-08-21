@@ -7,7 +7,7 @@ import { sortGradesByLevel } from "@/lib/pedagogical-order";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
-import { SearchX } from "lucide-react";
+import { BookOpen, BriefcaseBusiness, ClipboardCheck, FlaskConical, Gamepad2, SearchX, Video } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -16,6 +16,15 @@ export const metadata: Metadata = {
 };
 
 const PAGE_SIZE = 12;
+
+const TYPE_STYLES = [
+  { icon: BookOpen, className: "bg-primary/8 text-primary" },
+  { icon: ClipboardCheck, className: "bg-interactive-soft text-interactive" },
+  { icon: BriefcaseBusiness, className: "bg-activity-soft text-activity" },
+  { icon: Gamepad2, className: "bg-flashcard-soft text-flashcard" },
+  { icon: FlaskConical, className: "bg-simulation-soft text-simulation" },
+  { icon: Video, className: "bg-assessment-soft text-assessment" },
+];
 
 type ContentListRow = {
   id: string;
@@ -253,8 +262,34 @@ export default async function MateriaisPage({
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
-      <PageHeader title="Materiais" description={`${total} materiais encontrados`} />
+    <div className="editorial-surface min-h-[calc(100vh-4.5rem)] overflow-hidden">
+      <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="flex items-center gap-4">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+          <BriefcaseBusiness className="size-7" strokeWidth={1.8} />
+        </span>
+        <PageHeader title="Materiais" description={`${total} materiais encontrados`} />
+      </div>
+
+      {filtersData.contentTypes.length > 0 && (
+        <nav aria-label="Tipos de material" className="grid gap-2 rounded-2xl border bg-card/90 p-3 shadow-sm backdrop-blur sm:grid-cols-3 lg:grid-cols-6">
+          {filtersData.contentTypes.slice(0, 6).map((contentType, index) => {
+            const style = TYPE_STYLES[index % TYPE_STYLES.length];
+            const Icon = style.icon;
+            const active = tipo === contentType.id;
+            return (
+              <Link
+                key={contentType.id}
+                href={active ? buildHrefWithout("tipo") : `/materiais?tipo=${contentType.id}`}
+                className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all hover:-translate-y-0.5 hover:shadow-sm ${style.className} ${active ? "ring-2 ring-current ring-offset-2 ring-offset-card" : ""}`}
+              >
+                <Icon className="size-4" />
+                <span className="truncate">{contentType.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
 
       {bnccSkill && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm">
@@ -276,7 +311,7 @@ export default async function MateriaisPage({
           description="Tente outro termo de busca ou remova alguns filtros."
         />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {materials.map((material) => (
             <MaterialCard key={material.slug} material={material} />
           ))}
@@ -312,6 +347,7 @@ export default async function MateriaisPage({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

@@ -121,17 +121,18 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
   if (tipo) chips.push({ key: "tipo", label: labelOf(data.contentTypes, tipo) ?? tipo, href: chipHref("tipo") });
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border bg-card/95 p-4 shadow-sm backdrop-blur">
       <form onSubmit={handleSearchSubmit} className="flex gap-2">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por título, tema, descrição..."
+          placeholder="Buscar por título, tema, descrição, palavra-chave..."
+          className="h-10 rounded-xl bg-background/60 px-4"
         />
-        <Button type="submit">Buscar</Button>
+        <Button type="submit" className="h-10 rounded-xl px-6 shadow-sm">Buscar</Button>
       </form>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-7 [&_[data-slot=select-trigger]]:h-9 [&_[data-slot=select-trigger]]:rounded-xl [&_[data-slot=select-trigger]]:bg-background/50">
         <Select value={nivel || undefined} onValueChange={(v) => setFilter("nivel", (v as string) ?? null)}>
           <SelectTrigger className="w-full" aria-label="Filtrar por nível de ensino">
             <SelectValue placeholder="Nível">
