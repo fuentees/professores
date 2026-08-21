@@ -2,14 +2,31 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TrendSparkline } from "@/components/common/trend-sparkline";
+import { bucketByDay } from "@/lib/trend";
 
-function StatCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
+function StatCard({
+  label,
+  value,
+  hint,
+  trend,
+}: {
+  label: string;
+  value: string | number;
+  hint?: string;
+  trend?: { date: string; count: number }[];
+}) {
   return (
     <Card>
       <CardContent className="pt-6">
         <p className="text-sm text-muted-foreground">{label}</p>
         <p className="mt-1 text-3xl font-semibold">{value}</p>
         {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        {trend && (
+          <div className="mt-3">
+            <TrendSparkline data={trend} label={label} />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -30,9 +47,9 @@ export default async function DonoPage() {
 
   const [
     { count: teacherCount },
-    { count: newTeacherCount },
+    { data: newTeachers },
     { count: activeSubCount },
-    { count: newSubCount },
+    { data: newSubs },
     { count: planCount },
     { count: questionCount },
     { count: examCount },
@@ -41,13 +58,13 @@ export default async function DonoPage() {
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "teacher"),
     supabase
       .from("profiles")
-      .select("*", { count: "exact", head: true })
+      .select("created_at")
       .eq("role", "teacher")
       .gte("created_at", thirtyDaysAgo),
     supabase.from("subscriptions").select("*", { count: "exact", head: true }).eq("status", "active"),
     supabase
       .from("subscriptions")
-      .select("*", { count: "exact", head: true })
+      .select("starts_at")
       .eq("status", "active")
       .gte("starts_at", thirtyDaysAgo),
     supabase.from("plans").select("*", { count: "exact", head: true }).eq("status", "active"),
@@ -55,6 +72,11 @@ export default async function DonoPage() {
     supabase.from("generated_exams").select("*", { count: "exact", head: true }),
     supabase.from("subscriptions").select("plan_id, plans(name, price, billing_period)").eq("status", "active"),
   ]);
+
+  const newTeacherCount = newTeachers?.length ?? 0;
+  const newSubCount = newSubs?.length ?? 0;
+  const teacherTrend = bucketByDay((newTeachers ?? []).map((t) => t.created_at), 30);
+  const subTrend = bucketByDay((newSubs ?? []).map((s) => s.starts_at), 30);
 
   const byPlan = new Map<string, { name: string; price: number; billingPeriod: string; count: number }>();
   for (const sub of activeSubs ?? []) {
@@ -79,12 +101,14 @@ export default async function DonoPage() {
         <StatCard
           label="Professores cadastrados"
           value={teacherCount ?? 0}
-          hint={`+${newTeacherCount ?? 0} nos últimos 30 dias`}
+          hint={`+${newTeacherCount} nos últimos 30 dias`}
+          trend={teacherTrend}
         />
         <StatCard
           label="Assinaturas ativas"
           value={activeSubCount ?? 0}
-          hint={`+${newSubCount ?? 0} nos últimos 30 dias`}
+          hint={`+${newSubCount} nos últimos 30 dias`}
+          trend={subTrend}
         />
         <StatCard label="Planos ativos" value={planCount ?? 0} />
         <StatCard label="Questões publicadas" value={questionCount ?? 0} />

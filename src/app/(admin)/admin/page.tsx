@@ -1,9 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
+import { TrendSparkline } from "@/components/common/trend-sparkline";
+import { bucketByDay } from "@/lib/trend";
+
+function daysAgoIso(days: number): string {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
 
 async function getStats() {
   const supabase = await createClient();
+  const thirtyDaysAgo = daysAgoIso(30);
 
   const [
     { count: totalTeachers },
@@ -13,6 +20,7 @@ async function getStats() {
     { count: rascunhos },
     { count: totalViews },
     { count: totalDownloads },
+    { data: recentViews },
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "teacher"),
     supabase
@@ -29,6 +37,7 @@ async function getStats() {
     supabase.from("contents").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("content_views").select("*", { count: "exact", head: true }),
     supabase.from("downloads").select("*", { count: "exact", head: true }),
+    supabase.from("content_views").select("viewed_at").gte("viewed_at", thirtyDaysAgo),
   ]);
 
   return {
@@ -39,6 +48,7 @@ async function getStats() {
     rascunhos: rascunhos ?? 0,
     totalViews: totalViews ?? 0,
     totalDownloads: totalDownloads ?? 0,
+    viewsTrend: bucketByDay((recentViews ?? []).map((v) => v.viewed_at), 30),
   };
 }
 
@@ -51,7 +61,6 @@ export default async function AdminOverviewPage() {
     { label: "Professores bloqueados", value: stats.bloqueados },
     { label: "Materiais publicados", value: stats.publicados },
     { label: "Materiais em rascunho", value: stats.rascunhos },
-    { label: "Total de visualizações", value: stats.totalViews },
     { label: "Total de downloads", value: stats.totalDownloads },
   ];
 
@@ -59,7 +68,20 @@ export default async function AdminOverviewPage() {
     <div className="space-y-6">
       <PageHeader title="Visão geral" description="Resumo da atividade do portal." />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Total de visualizações</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-semibold">{stats.totalViews}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Visualizações de conteúdo nos últimos 30 dias</p>
+          <div className="mt-3">
+            <TrendSparkline data={stats.viewsTrend} label="Visualizações" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (
           <Card key={card.label}>
             <CardHeader>
