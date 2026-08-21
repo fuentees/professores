@@ -63,3 +63,17 @@ test("menu 'Explorar' do header abre e mostra o link pra Materiais", async ({ pa
   await page.getByRole("button", { name: "Explorar" }).click();
   await expect(page.getByRole("link", { name: "Materiais", exact: true })).toBeVisible();
 });
+
+test.describe("mobile (375px) — sem scroll horizontal", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  for (const path of ["/", "/materiais", "/blog", "/termos"]) {
+    test(`${path} não estoura a largura da viewport`, async ({ page }) => {
+      await page.goto(path);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `${path} tem ${overflow}px de overflow horizontal`).toBeLessThanOrEqual(1);
+    });
+  }
+});
