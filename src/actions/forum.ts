@@ -7,6 +7,12 @@ import { forumReplySchema, forumTopicSchema } from "@/lib/validations/forum";
 
 export type ActionResult = { error: string | null; id?: string };
 
+function forumWriteError(message?: string): string {
+  if (message?.includes("Aguarde alguns segundos")) return "Aguarde alguns segundos antes de publicar novamente.";
+  if (message?.includes("Limite temporário")) return "Você publicou muitas vezes em sequência. Tente novamente em alguns minutos.";
+  return "Não foi possível publicar agora. Tente novamente.";
+}
+
 export async function createTopic(categorySlug: string, input: unknown): Promise<ActionResult> {
   const parsed = forumTopicSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -33,7 +39,7 @@ export async function createTopic(categorySlug: string, input: unknown): Promise
     .select("id")
     .single();
 
-  if (error || !topic) return { error: error?.message ?? "Não foi possível criar o tópico." };
+  if (error || !topic) return { error: forumWriteError(error?.message) };
   revalidatePath(`/forum/${categorySlug}`);
   return { error: null, id: topic.id };
 }
@@ -52,7 +58,7 @@ export async function createReply(topicId: string, input: unknown): Promise<Acti
     body: parsed.data.body,
   });
 
-  if (error) return { error: "Não foi possível enviar a resposta. O tópico pode estar fechado." };
+  if (error) return { error: forumWriteError(error.message) };
   revalidatePath(`/forum/topico/${topicId}`);
   return { error: null };
 }

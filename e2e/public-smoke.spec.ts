@@ -45,6 +45,12 @@ test("sitemap.xml e robots.txt respondem", async ({ request }) => {
   expect(await robots.text()).toContain("Sitemap:");
 });
 
+test("health check confirma que o serviço está configurado", async ({ request }) => {
+  const response = await request.get("/api/health");
+  expect(response.status()).toBe(200);
+  await expect(response.json()).resolves.toMatchObject({ status: "ok", service: "portal-do-professor" });
+});
+
 test("rota inexistente mostra a página 404 customizada, não um erro cru", async ({ page }) => {
   const response = await page.goto("/esta-rota-nao-existe-de-verdade");
   expect(response?.status()).toBe(404);

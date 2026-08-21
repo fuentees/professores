@@ -1,0 +1,31 @@
+name: Database backup
+
+on:
+  schedule:
+    - cron: "20 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Export database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$DATABASE_URL"
+          pg_dump "$DATABASE_URL" --format=custom --no-owner --no-acl --file=portal.dump
+      - name: Upload encrypted-at-rest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-db-${{ github.run_id }}
+          path: portal.dump
+          retention-days: 14
+          if-no-files-found: error
