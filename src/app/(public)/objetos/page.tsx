@@ -108,7 +108,7 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-10">
+    <div className="editorial-surface mx-auto w-full max-w-7xl space-y-8 overflow-hidden px-4 py-10 sm:px-6">
       <InteractiveHero total={withActivity.length} />
 
       <div className="space-y-4">

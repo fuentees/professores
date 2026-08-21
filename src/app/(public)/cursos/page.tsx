@@ -18,7 +18,7 @@ export default async function CursosPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
+    <div className="editorial-surface mx-auto w-full max-w-7xl space-y-6 overflow-hidden px-4 py-10 sm:px-6">
       <PageHeader title="Cursos" description="Formação continuada para professores." />
 
       {!courses || courses.length === 0 ? (

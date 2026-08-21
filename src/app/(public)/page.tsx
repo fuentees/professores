@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   BookMarked,
+  BookOpenCheck,
+  ChevronRight,
   ClipboardCheck,
   FileText,
   GraduationCap,
@@ -9,6 +11,7 @@ import {
   LayoutGrid,
   RotateCcw,
   Search,
+  Shapes,
   Sparkles,
   Target,
   Users,
@@ -96,7 +99,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <section className="relative overflow-hidden border-b px-4 py-20">
+      <section className="editorial-surface relative overflow-hidden border-b px-4 py-14 sm:py-20">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/25 blur-3xl"
@@ -110,24 +113,25 @@ export default async function HomePage() {
           className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-bncc/15 blur-3xl"
         />
 
-        <div className="relative mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-primary shadow-sm backdrop-blur">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 sm:px-2 lg:grid-cols-[1.05fr_.95fr]">
+          <div className="flex flex-col items-start gap-6 text-left">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-card/85 px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm backdrop-blur">
             <GraduationCap className="h-3.5 w-3.5" />
             Biblioteca digital para professores
           </span>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-            Sua próxima <span className="text-primary">aula</span> começa aqui.
+          <h1 className="max-w-3xl text-4xl font-bold leading-[1.04] tracking-[-0.045em] sm:text-6xl">
+            Recursos que transformam a sua <span className="text-primary">próxima aula.</span>
           </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground">
+          <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
             Encontre atividades, avaliações, jogos e recursos prontos para qualquer série e
             disciplina.
           </p>
 
-          <form action="/materiais" method="get" className="flex w-full max-w-xl flex-col gap-2">
+          <form action="/materiais" method="get" className="flex w-full max-w-2xl flex-col gap-2">
             <label htmlFor="home-search" className="sr-only">
               O que você quer ensinar hoje?
             </label>
-            <div className="flex items-center gap-2 rounded-xl border bg-background p-2 shadow-md">
+            <div className="flex items-center gap-2 rounded-2xl border bg-card p-2 shadow-xl shadow-primary/8">
               <Search className="ml-2 h-5 w-5 shrink-0 text-muted-foreground" />
               <input
                 id="home-search"
@@ -136,14 +140,14 @@ export default async function HomePage() {
                 placeholder="Ex.: atividade sobre frações para o 6º ano"
                 className="w-full bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
               />
-              <Button type="submit" size="sm" className="shrink-0">
-                Buscar
+              <Button type="submit" className="h-10 shrink-0 rounded-xl px-5">
+                Buscar <ChevronRight className="size-4" />
               </Button>
             </div>
           </form>
 
           {stats.length > 0 && (
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 pt-2">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-2 pt-2">
               {stats.map((stat) => (
                 <div key={stat.label} className="flex items-baseline gap-1.5">
                   <span className="text-2xl font-bold tracking-tight text-primary">
@@ -154,17 +158,43 @@ export default async function HomePage() {
               ))}
             </div>
           )}
+          </div>
+
+          <div className="relative hidden min-h-[430px] lg:block" aria-hidden>
+            <div className="absolute inset-8 rotate-3 rounded-[2.5rem] bg-primary/10" />
+            <div className="absolute inset-x-12 top-5 rounded-3xl border bg-card p-5 shadow-2xl shadow-primary/10">
+              <div className="flex items-center gap-3 border-b pb-4">
+                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><BookOpenCheck className="size-5" /></span>
+                <div><p className="text-xs font-medium text-primary">PLANO DE AULA</p><p className="font-semibold">Aprendizagem que faz sentido</p></div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="h-24 rounded-2xl bg-assessment-soft" />
+                <div className="h-24 rounded-2xl bg-bncc-soft" />
+                <div className="h-24 rounded-2xl bg-interactive-soft" />
+              </div>
+              <div className="mt-4 h-2.5 w-4/5 rounded-full bg-muted" />
+              <div className="mt-2 h-2.5 w-3/5 rounded-full bg-muted" />
+            </div>
+            <div className="absolute bottom-8 left-0 flex w-52 -rotate-3 items-center gap-3 rounded-2xl border bg-card p-4 shadow-xl">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-interactive-soft text-interactive"><Shapes className="size-5" /></span>
+              <div><p className="text-xs text-muted-foreground">Recurso interativo</p><p className="text-sm font-semibold">Pronto para jogar</p></div>
+            </div>
+            <div className="absolute right-0 bottom-1 flex w-52 rotate-2 items-center gap-3 rounded-2xl border bg-card p-4 shadow-xl">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-bncc-soft text-bncc"><BookMarked className="size-5" /></span>
+              <div><p className="text-xs text-muted-foreground">Alinhamento</p><p className="text-sm font-semibold">Habilidades BNCC</p></div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+      <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-8 sm:px-6">
         <p className="text-sm font-medium text-muted-foreground">Navegue por etapa</p>
         <div className="flex flex-wrap gap-2">
           {(educationLevels ?? []).map((level) => (
             <Link
               key={level.id}
               href={`/materiais?nivel=${level.id}`}
-              className="rounded-full border bg-background px-4 py-2 text-sm transition-colors hover:bg-accent"
+              className="rounded-full border bg-card px-4 py-2 text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:bg-primary/5 hover:text-primary"
             >
               {level.name}
             </Link>
@@ -173,24 +203,24 @@ export default async function HomePage() {
       </section>
 
       {shortcuts.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <p className="text-sm font-medium text-muted-foreground">O que você precisa fazer hoje?</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {shortcuts.map(({ label, icon: Icon, typeId }) => (
               <Link
                 key={label}
                 href={`/materiais?tipo=${typeId}`}
-                className="group flex flex-col items-center gap-2 rounded-lg border p-4 text-center text-sm transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
+                className="group flex flex-col items-center gap-3 rounded-2xl border bg-card p-5 text-center text-sm font-medium shadow-sm transition-all hover:-translate-y-1 hover:border-primary/30 hover:bg-primary/5 hover:shadow-lg"
               >
-                <Icon className="h-5 w-5 text-primary/70 transition-colors group-hover:text-primary" />
+                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/8"><Icon className="h-5 w-5 text-primary/70 transition-colors group-hover:text-primary" /></span>
                 {label}
               </Link>
             ))}
             <Link
               href="/objetos"
-              className="group flex flex-col items-center gap-2 rounded-lg border p-4 text-center text-sm transition-all hover:border-interactive/30 hover:bg-interactive/5 hover:shadow-sm"
+              className="group flex flex-col items-center gap-3 rounded-2xl border bg-card p-5 text-center text-sm font-medium shadow-sm transition-all hover:-translate-y-1 hover:border-interactive/30 hover:bg-interactive/5 hover:shadow-lg"
             >
-              <LayoutGrid className="h-5 w-5 text-interactive/70 transition-colors group-hover:text-interactive" />
+              <span className="flex size-10 items-center justify-center rounded-xl bg-interactive-soft"><LayoutGrid className="h-5 w-5 text-interactive/70 transition-colors group-hover:text-interactive" /></span>
               Recursos interativos
             </Link>
           </div>
@@ -198,7 +228,7 @@ export default async function HomePage() {
       )}
 
       {featured.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <SectionHeader
             title="Materiais em destaque"
             description="Selecionados pela nossa equipe pedagógica."
@@ -213,7 +243,7 @@ export default async function HomePage() {
       )}
 
       {recent.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <SectionHeader title="Novidades" description="Os últimos materiais publicados." href="/materiais" />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {recent.slice(0, 4).map((material) => (
@@ -224,7 +254,7 @@ export default async function HomePage() {
       )}
 
       {objects && objects.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <SectionHeader
             title="Jogos e atividades interativas"
             description="Recursos que os alunos usam direto na plataforma."
@@ -239,7 +269,7 @@ export default async function HomePage() {
       )}
 
       {courses && courses.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <SectionHeader title="Cursos em destaque" description="Formação continuada para professores." href="/cursos" />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
@@ -250,7 +280,7 @@ export default async function HomePage() {
       )}
 
       {free.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl space-y-4 px-4 py-10">
+        <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <SectionHeader
             title="Conteúdos gratuitos"
             description="Sem precisar de assinatura para baixar."
@@ -264,9 +294,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="mx-auto w-full max-w-6xl px-4 py-10">
+      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6">
         <div className="grid gap-6 sm:grid-cols-3">
-          <div className="rounded-lg border p-6">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-bncc-soft text-bncc">
               <BookMarked className="h-5 w-5" strokeWidth={1.5} />
             </div>
@@ -275,7 +305,7 @@ export default async function HomePage() {
               Conteúdos vinculados às habilidades da Base Nacional Comum Curricular.
             </p>
           </div>
-          <div className="rounded-lg border p-6">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-interactive-soft text-interactive">
               <LayoutGrid className="h-5 w-5" strokeWidth={1.5} />
             </div>
@@ -284,7 +314,7 @@ export default async function HomePage() {
               Jogos, quizzes e simulações que os alunos usam direto no navegador.
             </p>
           </div>
-          <div className="rounded-lg border p-6">
+          <div className="rounded-2xl border bg-card p-6 shadow-sm">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
               <GraduationCap className="h-5 w-5" strokeWidth={1.5} />
             </div>

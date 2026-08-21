@@ -19,11 +19,11 @@ export function CourseCard({ course }: { course: CourseCardData }) {
   return (
     <Link
       href={`/cursos/${course.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-lg"
+      className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/8"
     >
       <div className="relative aspect-video bg-gradient-to-br from-primary/15 to-primary/5">
         {course.cover_url ? (
-          <Image src={course.cover_url} alt={course.title} fill className="object-cover" />
+          <Image src={course.cover_url} alt={course.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-primary/60">
             <GraduationCap className="h-10 w-10" strokeWidth={1.5} />
@@ -35,7 +35,7 @@ export function CourseCard({ course }: { course: CourseCardData }) {
         </Badge>
       </div>
       <div className="flex flex-1 flex-col gap-2 p-5">
-        <h2 className="line-clamp-2 text-lg font-semibold tracking-tight group-hover:underline">
+        <h2 className="line-clamp-2 text-lg font-semibold tracking-tight group-hover:text-primary">
           {course.title}
         </h2>
         {course.description && (

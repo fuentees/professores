@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import { FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/common/page-header";
 
 export const metadata: Metadata = {
   title: "Pastas e coleções",
@@ -17,11 +18,8 @@ export default async function PastasPage() {
     .order("order_index");
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
-      <div>
-        <h1 className="text-2xl font-semibold">Pastas e coleções</h1>
-        <p className="text-muted-foreground">Materiais agrupados por tema.</p>
-      </div>
+    <div className="editorial-surface mx-auto w-full max-w-7xl space-y-6 overflow-hidden px-4 py-10 sm:px-6">
+      <PageHeader title="Pastas e coleções" description="Materiais agrupados por tema, prontos para usar em conjunto." />
 
       {(!folders || folders.length === 0) && (
         <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
@@ -34,11 +32,11 @@ export default async function PastasPage() {
           <Link
             key={folder.slug}
             href={`/pastas/${folder.slug}`}
-            className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
+            className="group flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/8"
           >
             <div className="relative aspect-video bg-muted">
               {folder.cover_url ? (
-                <Image src={folder.cover_url} alt={folder.title} fill className="object-cover" />
+                <Image src={folder.cover_url} alt={folder.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                   <FolderOpen className="h-8 w-8" />
@@ -46,7 +44,7 @@ export default async function PastasPage() {
               )}
             </div>
             <div className="flex flex-1 flex-col gap-1 p-4">
-              <h2 className="font-semibold group-hover:underline">{folder.title}</h2>
+              <h2 className="font-semibold group-hover:text-primary">{folder.title}</h2>
               {folder.description && (
                 <p className="line-clamp-2 text-sm text-muted-foreground">{folder.description}</p>
               )}

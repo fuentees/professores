@@ -6,7 +6,7 @@ import { test, expect } from "@playwright/test";
  * nenhum erro de console. Não requer login nem segredos.
  */
 const PUBLIC_ROUTES: { path: string; heading: string | RegExp }[] = [
-  { path: "/", heading: /próxima aula começa aqui/i },
+  { path: "/", heading: /recursos que transformam a sua próxima aula/i },
   { path: "/materiais", heading: "Materiais" },
   { path: "/pastas", heading: /Pastas/i },
   { path: "/objetos", heading: /Jogos, quizzes e simulações/i },
