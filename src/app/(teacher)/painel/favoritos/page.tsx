@@ -8,6 +8,10 @@ import { isRecentlyCreated } from "@/lib/dates";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
+import { InteractiveCard } from "@/components/interactive/interactive-card";
+import { LearningObjectCard } from "@/components/learning-objects/learning-object-card";
+import { learningObjectCover } from "@/lib/content-cover";
+import type { LearningActivityType } from "@/lib/validations/interactive-activity";
 
 type FavoriteRow = {
   contents: {
@@ -24,24 +28,45 @@ type FavoriteRow = {
   } | null;
 };
 
+type ObjectFavoriteRow = {
+  learning_objects: {
+    slug: string;
+    title: string;
+    description: string | null;
+    cover_url: string | null;
+    object_type: string;
+    activity_type: LearningActivityType | null;
+    subjects: { name: string } | null;
+    grades: { name: string } | null;
+  } | null;
+};
+
 export default async function FavoritosPage() {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/entrar?redirect=/painel/favoritos");
 
   const supabase = await createClient();
-  const { data: favorites } = await supabase
-    .from("favorites")
-    .select(
-      `contents (
-        slug, title, short_description, cover_url, access_type, has_answer_key, created_at,
-        content_subjects(subjects(name)),
-        content_grades(grades(name)),
-        content_content_types(content_types(name))
-      )`,
-    )
-    .eq("teacher_id", profile.id)
-    .order("created_at", { ascending: false })
-    .returns<FavoriteRow[]>();
+  const [{ data: favorites }, { data: objectFavorites }] = await Promise.all([
+    supabase
+      .from("favorites")
+      .select(
+        `contents (
+          slug, title, short_description, cover_url, access_type, has_answer_key, created_at,
+          content_subjects(subjects(name)),
+          content_grades(grades(name)),
+          content_content_types(content_types(name))
+        )`,
+      )
+      .eq("teacher_id", profile.id)
+      .order("created_at", { ascending: false })
+      .returns<FavoriteRow[]>(),
+    supabase
+      .from("learning_object_favorites")
+      .select("learning_objects(slug, title, description, cover_url, object_type, activity_type, subjects(name), grades(name))")
+      .eq("teacher_id", profile.id)
+      .order("created_at", { ascending: false })
+      .returns<ObjectFavoriteRow[]>(),
+  ]);
 
   const materials: MaterialCardData[] = (favorites ?? [])
     .map((f) => f.contents)
@@ -60,25 +85,77 @@ export default async function FavoritosPage() {
         .map((t) => t.content_types?.name)
         .filter((n): n is string => Boolean(n)),
     }));
+  const savedObjects = (objectFavorites ?? [])
+    .map((favorite) => favorite.learning_objects)
+    .filter((object): object is NonNullable<typeof object> => Boolean(object));
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Favoritos" description="Materiais que você marcou como favoritos." />
+      <PageHeader title="Itens salvos" description="Materiais e recursos interativos que você deseja encontrar novamente." />
 
-      {materials.length === 0 ? (
+      {materials.length === 0 && savedObjects.length === 0 ? (
         <EmptyState
           icon={Heart}
-          title="Nenhum favorito ainda"
-          description="Salve materiais que você deseja encontrar novamente."
+          title="Nenhum item salvo ainda"
+          description="Salve materiais e recursos interativos que você deseja usar depois."
           action={
-            <Button size="sm" nativeButton={false} render={<Link href="/materiais">Explorar materiais</Link>} />
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button size="sm" nativeButton={false} render={<Link href="/materiais">Explorar materiais</Link>} />
+              <Button size="sm" variant="outline" nativeButton={false} render={<Link href="/objetos">Explorar recursos</Link>} />
+            </div>
           }
         />
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {materials.map((material) => (
-            <MaterialCard key={material.slug} material={material} />
-          ))}
+        <div className="space-y-10">
+          {savedObjects.length > 0 && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Recursos interativos</h2>
+                <p className="text-sm text-muted-foreground">Jogos, quizzes, simulações e atividades salvas.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {savedObjects.map((object) =>
+                  object.activity_type ? (
+                    <InteractiveCard
+                      key={object.slug}
+                      object={{
+                        slug: object.slug,
+                        title: object.title,
+                        description: object.description,
+                        coverUrl: object.cover_url ?? learningObjectCover(object.slug),
+                        activityType: object.activity_type,
+                        subjectName: object.subjects?.name,
+                        gradeName: object.grades?.name,
+                      }}
+                    />
+                  ) : (
+                    <LearningObjectCard
+                      key={object.slug}
+                      object={{
+                        slug: object.slug,
+                        title: object.title,
+                        description: object.description,
+                        cover_url: object.cover_url,
+                        object_type: object.object_type,
+                      }}
+                    />
+                  ),
+                )}
+              </div>
+            </section>
+          )}
+
+          {materials.length > 0 && (
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Materiais</h2>
+                <p className="text-sm text-muted-foreground">Conteúdos pedagógicos marcados como favoritos.</p>
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {materials.map((material) => <MaterialCard key={material.slug} material={material} />)}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>

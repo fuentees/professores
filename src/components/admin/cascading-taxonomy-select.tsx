@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -46,6 +47,15 @@ export function CascadingTaxonomySelect({
   value: TaxonomySelection;
   onChange: (value: TaxonomySelection) => void;
 }) {
+  const baseId = useId();
+  const ids = {
+    educationLevel: `${baseId}-education-level`,
+    grade: `${baseId}-grade`,
+    subject: `${baseId}-subject`,
+    curriculumUnit: `${baseId}-curriculum-unit`,
+    theme: `${baseId}-theme`,
+    subtheme: `${baseId}-subtheme`,
+  };
   const availableGrades = value.educationLevelId
     ? options.grades.filter((g) => g.educationLevelId === value.educationLevelId)
     : options.grades;
@@ -71,7 +81,7 @@ export function CascadingTaxonomySelect({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div className="flex flex-col gap-2">
-        <Label>Nível de ensino</Label>
+        <Label htmlFor={ids.educationLevel}>Nível de ensino</Label>
         <Select
           value={value.educationLevelId}
           onValueChange={(v) =>
@@ -85,7 +95,7 @@ export function CascadingTaxonomySelect({
             })
           }
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.educationLevel} aria-label="Nível de ensino" className="w-full">
             <SelectValue>{(v: string) => (v ? labelOf(options.educationLevels, v) : "Selecione o nível")}</SelectValue>
           </SelectTrigger>
           <SelectContent>
@@ -99,7 +109,7 @@ export function CascadingTaxonomySelect({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Série/ano</Label>
+        <Label htmlFor={ids.grade}>Série/ano</Label>
         <Select
           value={value.gradeId}
           onValueChange={(v) =>
@@ -107,7 +117,7 @@ export function CascadingTaxonomySelect({
           }
           disabled={!value.educationLevelId}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.grade} aria-label="Série ou ano" className="w-full">
             <SelectValue>
               {(v: string) =>
                 v ? labelOf(options.grades, v) : value.educationLevelId ? "Selecione a série" : "Escolha o nível primeiro"
@@ -125,7 +135,7 @@ export function CascadingTaxonomySelect({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Disciplina</Label>
+        <Label htmlFor={ids.subject}>Disciplina</Label>
         <Select
           value={value.subjectId}
           onValueChange={(v) =>
@@ -133,7 +143,7 @@ export function CascadingTaxonomySelect({
           }
           disabled={!value.gradeId}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.subject} aria-label="Disciplina" className="w-full">
             <SelectValue>
               {(v: string) =>
                 v ? labelOf(options.subjects, v) : value.gradeId ? "Selecione a disciplina" : "Escolha a série primeiro"
@@ -151,13 +161,13 @@ export function CascadingTaxonomySelect({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Unidade temática</Label>
+        <Label htmlFor={ids.curriculumUnit}>Unidade temática</Label>
         <Select
           value={value.curriculumUnitId}
           onValueChange={(v) => set({ curriculumUnitId: (v as string) ?? "", themeId: "", subthemeId: "" })}
           disabled={!value.subjectId}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.curriculumUnit} aria-label="Unidade temática" className="w-full">
             <SelectValue>
               {(v: string) =>
                 v
@@ -179,13 +189,13 @@ export function CascadingTaxonomySelect({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Tema da aula</Label>
+        <Label htmlFor={ids.theme}>Tema da aula</Label>
         <Select
           value={value.themeId}
           onValueChange={(v) => set({ themeId: (v as string) ?? "", subthemeId: "" })}
           disabled={!value.curriculumUnitId}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.theme} aria-label="Tema da aula" className="w-full">
             <SelectValue>
               {(v: string) =>
                 v
@@ -207,13 +217,13 @@ export function CascadingTaxonomySelect({
       </div>
 
       <div className="flex flex-col gap-2 sm:col-span-2 sm:w-[calc(50%-0.5rem)]">
-        <Label>Subtema (opcional)</Label>
+        <Label htmlFor={ids.subtheme}>Subtema (opcional)</Label>
         <Select
           value={value.subthemeId}
           onValueChange={(v) => set({ subthemeId: (v as string) ?? "" })}
           disabled={!value.themeId || availableSubthemes.length === 0}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger id={ids.subtheme} aria-label="Subtema opcional" className="w-full">
             <SelectValue>
               {(v: string) =>
                 v

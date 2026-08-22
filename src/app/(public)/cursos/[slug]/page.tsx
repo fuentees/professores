@@ -73,7 +73,7 @@ export default async function CourseDetailPage({
   return (
     <div className="mx-auto w-full max-w-4xl space-y-8 px-4 py-10">
       <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        <Image src={coverUrl} alt={course.title} fill className="object-cover" priority />
+        <Image src={coverUrl} alt={course.title} fill sizes="(min-width: 1024px) 896px, 100vw" className="object-cover" priority />
       </div>
 
       <div>

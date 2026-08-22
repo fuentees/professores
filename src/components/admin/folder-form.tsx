@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { createFolder, updateFolder } from "@/actions/admin/folder";
@@ -30,6 +30,9 @@ export function FolderForm({
     resolver: zodResolver(folderSchema),
     defaultValues,
   });
+  const accessType = useWatch({ control: form.control, name: "accessType" });
+  const status = useWatch({ control: form.control, name: "status" });
+  const contentIds = useWatch({ control: form.control, name: "contentIds" });
 
   async function onSubmit(values: FolderInput) {
     const result = folderId ? await updateFolder(folderId, values) : await createFolder(values);
@@ -69,7 +72,7 @@ export function FolderForm({
             <div className="flex flex-col gap-2">
               <Label>Tipo de acesso</Label>
               <Select
-                value={form.watch("accessType")}
+                value={accessType}
                 onValueChange={(value) => form.setValue("accessType", value ?? "teacher_only")}
               >
                 <SelectTrigger className="w-full">
@@ -87,7 +90,7 @@ export function FolderForm({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full">
@@ -106,7 +109,7 @@ export function FolderForm({
           <MultiCheckList
             label="Materiais nesta pasta"
             options={contentOptions}
-            selected={form.watch("contentIds")}
+            selected={contentIds}
             onChange={(ids) => form.setValue("contentIds", ids)}
             emptyLabel="Nenhum material publicado ainda."
           />

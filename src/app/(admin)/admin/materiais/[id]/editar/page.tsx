@@ -21,7 +21,7 @@ type ContentDetailRow = Database["public"]["Tables"]["contents"]["Row"] & {
 async function loadOptions(): Promise<ContentFormOptions> {
   const supabase = await createClient();
 
-  const [{ data: educationLevels }, { data: grades }, { data: subjects }, { data: units }, { data: themes }, { data: subthemes }, { data: contentTypes }] =
+  const [{ data: educationLevels }, { data: grades }, { data: subjects }, { data: units }, { data: themes }, { data: subthemes }, { data: contentTypes }, { data: bnccSkills }] =
     await Promise.all([
       supabase.from("education_levels").select("id, order_index").order("order_index"),
       supabase.from("grades").select("id, name, education_level_id").order("order_index"),
@@ -29,7 +29,8 @@ async function loadOptions(): Promise<ContentFormOptions> {
       supabase.from("curriculum_units").select("id, name").order("order_index"),
       supabase.from("themes").select("id, name").order("order_index"),
       supabase.from("subthemes").select("id, name").order("order_index"),
-      supabase.from("content_types").select("id, name").order("order_index"),
+      supabase.from("content_types").select("id, name").eq("status", "active").order("order_index"),
+      supabase.from("bncc_skills").select("id, code, description").eq("status", "active").order("code"),
     ]);
 
   const educationLevelOrders = (educationLevels ?? []).map((l) => ({ id: l.id, orderIndex: l.order_index }));
@@ -45,6 +46,10 @@ async function loadOptions(): Promise<ContentFormOptions> {
     themes: (themes ?? []).map((t) => ({ id: t.id, label: t.name })),
     subthemes: (subthemes ?? []).map((s) => ({ id: s.id, label: s.name })),
     contentTypes: (contentTypes ?? []).map((c) => ({ id: c.id, label: c.name })),
+    bnccSkills: (bnccSkills ?? []).map((skill) => ({
+      id: skill.id,
+      label: `${skill.code} — ${skill.description}`,
+    })),
   };
 }
 
@@ -110,8 +115,8 @@ export default async function EditarMaterialPage({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">Editar material</h1>
-        <p className="text-muted-foreground">{content.title}</p>
+        <h1 className="text-2xl font-semibold">Preparar e publicar material</h1>
+        <p className="text-muted-foreground">{content.title} — revise o texto e a classificação. Capa e anexos são complementos opcionais.</p>
       </div>
 
       <ContentFileManager contentId={id} coverUrl={content.cover_url} files={files ?? []} />

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import axe from "axe-core";
 
-const ROUTES = ["/", "/materiais", "/entrar"];
+const ROUTES = ["/", "/buscar?q=frações", "/materiais", "/entrar"];
 
 for (const route of ROUTES) {
   test(`${route} não tem violações graves de acessibilidade`, async ({ page }) => {

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Printer, Pencil, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import { ExamQuestionBody } from "@/components/painel/exam-question-body";
-import type { ExamQuestion, GeneratedExamDetail } from "@/actions/exam-generator";
+import { recordExamDownload, type ExamQuestion, type GeneratedExamDetail } from "@/actions/exam-generator";
 import { EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
 
 // Toda prova tem disciplina/série (direto na prova, ou — pra provas salvas
@@ -40,7 +41,11 @@ export function ExamPrintView({
     try {
       const { generateExamDocx, downloadBlob } = await import("@/lib/export/exam-docx");
       const blob = await generateExamDocx(exam, questions, printSettings);
-      downloadBlob(blob, `${exam.title || "prova"}.docx`);
+      downloadBlob(blob, `${exam.title || "avaliacao"}.docx`);
+      const recorded = await recordExamDownload(exam.id);
+      if (recorded.error) toast.warning(recorded.error);
+    } catch {
+      toast.error("Não foi possível gerar o arquivo Word.");
     } finally {
       setDownloading(false);
     }

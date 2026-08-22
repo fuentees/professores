@@ -46,7 +46,7 @@ export function PrintSettingsForm({ profile }: { profile: CurrentProfile }) {
       <div className="flex flex-col gap-2">
         <Label>Logo da escola</Label>
         <p className="text-sm text-muted-foreground">
-          Aparece no cabeçalho das provas quando você imprimir.
+          Aparece no cabeçalho das avaliações quando você imprimir.
         </p>
         <div className="flex items-center gap-4">
           {logoUrl ? (

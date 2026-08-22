@@ -1,43 +1,57 @@
-"use client";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MATERIAL_TYPE_DEFINITIONS } from "@/lib/material-taxonomy";
 
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  createContentType,
-  deleteContentType,
-  setContentTypeStatus,
-  updateContentType,
-} from "@/actions/admin/pedagogical";
-import { contentTypeSchema, type ContentTypeInput } from "@/lib/validations/pedagogical";
-import { CatalogManager, type CatalogRow } from "@/components/admin/catalog-manager";
-
-export type ContentTypeRow = CatalogRow & { icon: string | null };
+export type ContentTypeRow = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  status: "active" | "inactive";
+};
 
 export function ContentTypesManager({ rows }: { rows: ContentTypeRow[] }) {
+  const rowBySlug = new Map(rows.map((row) => [row.slug, row]));
+  const inactiveCount = rows.filter((row) => row.status === "inactive").length;
+
   return (
-    <CatalogManager<ContentTypeRow, ContentTypeInput>
-      title="Tipos de material"
-      emptyLabel="Nenhum tipo de material cadastrado ainda."
-      rows={rows}
-      schema={contentTypeSchema}
-      defaultValues={(row) => ({
-        name: row?.name ?? "",
-        description: row?.description ?? "",
-        orderIndex: row?.order_index ?? 0,
-        status: row?.status ?? "active",
-        icon: row?.icon ?? "",
-      })}
-      extraColumns={[{ header: "Ícone", render: (row) => row.icon || "—" }]}
-      renderExtraFields={(form) => (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="icon">Ícone (lucide-react)</Label>
-          <Input id="icon" {...form.register("icon")} placeholder="FileText" />
-        </div>
-      )}
-      onCreate={createContentType}
-      onUpdate={updateContentType}
-      onDelete={deleteContentType}
-      onSetStatus={setContentTypeStatus}
-    />
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-2">
+        {MATERIAL_TYPE_DEFINITIONS.map((definition) => {
+          const row = rowBySlug.get(definition.slug);
+          return (
+            <Card key={definition.slug}>
+              <CardHeader className="flex-row items-center justify-between gap-3">
+                <CardTitle className="text-base">{definition.name}</CardTitle>
+                <Badge variant={row?.status === "active" ? "default" : "outline"}>
+                  {row?.status === "active" ? "Ativo" : "Pendente"}
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>{definition.description}</p>
+                <p className="text-muted-foreground">
+                  <span className="font-medium text-foreground">Exemplos:</span>{" "}
+                  {definition.examples}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <p className="font-medium text-foreground">Como classificar</p>
+        <p className="mt-1">
+          Cada material recebe uma única finalidade principal. Termos como “Simulado”,
+          “Lista de exercícios”, “BNCC” e “Recuperação” ficam nos marcadores; Word, PDF,
+          vídeo e outros formatos vêm dos arquivos; gabarito é indicado separadamente.
+        </p>
+        {inactiveCount > 0 && (
+          <p className="mt-2">
+            {inactiveCount} classificações antigas foram preservadas como inativas para manter o histórico.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

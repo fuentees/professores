@@ -6,14 +6,14 @@ export default async function TiposMateriaisPage() {
   const supabase = await createClient();
   const { data: contentTypes } = await supabase
     .from("content_types")
-    .select("*")
+    .select("id, name, slug, description, status")
     .order("order_index");
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tipos de material"
-        description="Ex: Atividade, Avaliação, Plano de aula, Simulado, Gabarito..."
+        description="Quatro finalidades principais, sem duplicar formato, subtipo ou gabarito."
       />
 
       <ContentTypesManager rows={(contentTypes ?? []) as ContentTypeRow[]} />

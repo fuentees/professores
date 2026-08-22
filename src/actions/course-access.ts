@@ -9,11 +9,14 @@ import { hasSubscriberAccess } from "@/lib/access/subscriber-access";
 export type ActionResult = { error: string | null; url?: string };
 
 type LessonFileWithCourse = {
+  name: string;
   storage_path: string;
   lesson: {
+    id: string;
+    title: string;
     status: string;
     module: {
-      course: { id: string; status: string; access_type: string } | null;
+      course: { id: string; slug: string; title: string; status: string; access_type: string } | null;
     } | null;
   } | null;
 };
@@ -46,7 +49,7 @@ export async function getLessonFileDownloadUrl(lessonFileId: string): Promise<Ac
   const { data: file } = await admin
     .from("lesson_files")
     .select(
-      "storage_path, lesson:course_lessons(status, module:course_modules(course:courses(id, status, access_type)))",
+      "name, storage_path, lesson:course_lessons(id, title, status, module:course_modules(course:courses(id, slug, title, status, access_type)))",
     )
     .eq("id", lessonFileId)
     .single()
@@ -70,5 +73,16 @@ export async function getLessonFileDownloadUrl(lessonFileId: string): Promise<Ac
     .createSignedUrl(file.storage_path, 60);
 
   if (error || !signed) return { error: "Não foi possível gerar o link de download." };
+
+  await admin.from("download_events").insert({
+    teacher_id: profile.id,
+    resource_type: "lesson",
+    resource_id: file.lesson!.id,
+    resource_title: `${course.title} — ${file.lesson!.title}`,
+    resource_href: `/cursos/${course.slug}/aulas/${file.lesson!.id}`,
+    file_name: file.name,
+  });
+  revalidatePath("/painel");
+  revalidatePath("/painel/downloads");
   return { error: null, url: signed.signedUrl };
 }

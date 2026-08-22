@@ -36,8 +36,8 @@ export function DeleteQuestionButton({ id }: { id: string }) {
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir esta questão?</AlertDialogTitle>
           <AlertDialogDescription>
-            Essa ação não pode ser desfeita. Se a questão já fizer parte de provas salvas por
-            professores, ela será removida dessas provas.
+            Essa ação não pode ser desfeita. Se a questão já fizer parte de avaliações salvas por
+            professores, ela será removida dessas avaliações.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

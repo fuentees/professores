@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { createBlogPost, updateBlogPost } from "@/actions/admin/blog";
@@ -30,6 +30,9 @@ export function BlogPostForm({
     resolver: zodResolver(blogPostSchema),
     defaultValues,
   });
+  const categoryId = useWatch({ control: form.control, name: "categoryId" });
+  const status = useWatch({ control: form.control, name: "status" });
+  const allowComments = useWatch({ control: form.control, name: "allowComments" });
 
   async function onSubmit(values: BlogPostInput) {
     const result = postId ? await updateBlogPost(postId, values) : await createBlogPost(values);
@@ -78,7 +81,7 @@ export function BlogPostForm({
             <div className="flex flex-col gap-2">
               <Label>Categoria</Label>
               <Select
-                value={form.watch("categoryId")}
+                value={categoryId}
                 onValueChange={(value) => form.setValue("categoryId", value ?? "")}
               >
                 <SelectTrigger className="w-full">
@@ -101,7 +104,7 @@ export function BlogPostForm({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full">
@@ -118,7 +121,7 @@ export function BlogPostForm({
             <label className="flex items-center justify-between rounded-md border p-3">
               <span className="text-sm">Permitir comentários</span>
               <Switch
-                checked={form.watch("allowComments")}
+                checked={allowComments}
                 onCheckedChange={(checked) => form.setValue("allowComments", checked)}
               />
             </label>

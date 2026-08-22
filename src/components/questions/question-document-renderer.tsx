@@ -53,7 +53,7 @@ export function QuestionDocumentRenderer({ blocks }: { blocks: QuestionDocumentB
             return (
               <div key={i} className="relative aspect-video w-full max-w-md overflow-hidden rounded-md border bg-muted">
                 {group.url ? (
-                  <Image src={group.url} alt={group.altText ?? "Imagem da questão"} fill className="object-contain" />
+                  <Image src={group.url} alt={group.altText ?? "Imagem da questão"} fill sizes="(min-width: 768px) 448px, 100vw" className="object-contain" />
                 ) : (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
                     <ImageOff className="h-8 w-8" />

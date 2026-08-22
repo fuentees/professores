@@ -31,7 +31,7 @@ export function DashboardMobileNav({
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger
         className="inline-flex size-9 items-center justify-center rounded-lg hover:bg-accent lg:hidden"
-        aria-label="Abrir menu"
+        aria-label={open ? "Fechar menu" : "Abrir menu"}
       >
         <Menu className="h-5 w-5" />
       </SheetTrigger>
@@ -40,29 +40,16 @@ export function DashboardMobileNav({
           <SheetTitle>Portal do Professor</SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4 pb-4">
-          {items.map((item) => {
+          {items.map((item, index) => {
             const active = isActive(pathname, item.href);
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
-                  active ? activeClassName : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            );
-          })}
-          <div className="mt-3 flex flex-col gap-1 border-t pt-3">
-            {bottomItems.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
+              <div key={item.href}>
+                {item.section && item.section !== items[index - 1]?.section && (
+                  <p className="px-3 pb-1 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                    {item.section}
+                  </p>
+                )}
                 <Link
-                  key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
                   aria-current={active ? "page" : undefined}
@@ -73,6 +60,31 @@ export function DashboardMobileNav({
                   {item.icon}
                   {item.label}
                 </Link>
+              </div>
+            );
+          })}
+          <div className="mt-3 flex flex-col gap-1 border-t pt-3">
+            {bottomItems.map((item, index) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <div key={item.href}>
+                  {item.section && item.section !== bottomItems[index - 1]?.section && (
+                    <p className="px-3 pb-1 pt-2 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+                      {item.section}
+                    </p>
+                  )}
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
+                      active ? activeClassName : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                </div>
               );
             })}
           </div>

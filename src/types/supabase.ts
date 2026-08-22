@@ -344,6 +344,31 @@ export type Database = {
         Relationships: [];
       };
 
+      download_events: {
+        Row: {
+          id: string;
+          teacher_id: string | null;
+          resource_type: "material" | "question" | "exam" | "lesson";
+          resource_id: string;
+          resource_title: string;
+          resource_href: string;
+          file_name: string | null;
+          downloaded_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id?: string | null;
+          resource_type: "material" | "question" | "exam" | "lesson";
+          resource_id: string;
+          resource_title: string;
+          resource_href: string;
+          file_name?: string | null;
+          downloaded_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["download_events"]["Insert"]>;
+        Relationships: [];
+      };
+
       plans: {
         Row: {
           id: string;
@@ -424,6 +449,31 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
+
+      subscription_requests: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          plan_id: string;
+          status: "pending" | "approved" | "rejected" | "canceled";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          plan_id: string;
+          status?: "pending" | "approved" | "rejected" | "canceled";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["subscription_requests"]["Insert"]>;
         Relationships: [];
       };
 
@@ -698,6 +748,27 @@ export type Database = {
         Row: { id: string; teacher_id: string; question_id: string; created_at: string };
         Insert: { id?: string; teacher_id: string; question_id: string; created_at?: string };
         Update: Partial<{ id: string; teacher_id: string; question_id: string; created_at: string }>;
+        Relationships: [];
+      };
+
+      question_collections: {
+        Row: { id: string; teacher_id: string; name: string; created_at: string; updated_at: string };
+        Insert: { id?: string; teacher_id: string; name: string; created_at?: string; updated_at?: string };
+        Update: Partial<{ teacher_id: string; name: string; updated_at: string }>;
+        Relationships: [];
+      };
+
+      question_collection_items: {
+        Row: { id: string; collection_id: string; question_id: string; order_index: number; created_at: string };
+        Insert: { id?: string; collection_id: string; question_id: string; order_index?: number; created_at?: string };
+        Update: Partial<{ question_id: string; order_index: number }>;
+        Relationships: [];
+      };
+
+      learning_object_favorites: {
+        Row: { id: string; teacher_id: string; learning_object_id: string; created_at: string };
+        Insert: { id?: string; teacher_id: string; learning_object_id: string; created_at?: string };
+        Update: Partial<{ teacher_id: string; learning_object_id: string; created_at: string }>;
         Relationships: [];
       };
 
@@ -1143,6 +1214,10 @@ export type Database = {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      is_owner: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
       create_generated_exam: {
         Args: {
           p_title: string;
@@ -1167,6 +1242,14 @@ export type Database = {
           p_grade_id?: string | null;
           p_subject_id?: string | null;
         };
+        Returns: string;
+      };
+      create_question_collection: {
+        Args: { p_name: string; p_question_ids: string[] };
+        Returns: string;
+      };
+      update_question_collection: {
+        Args: { p_collection_id: string; p_name: string; p_question_ids: string[] };
         Returns: string;
       };
       import_question_draft: {

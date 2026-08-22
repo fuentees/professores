@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
@@ -71,6 +71,10 @@ export function LearningObjectForm({
     resolver: zodResolver(learningObjectSchema),
     defaultValues,
   });
+  const objectType = useWatch({ control: form.control, name: "objectType" });
+  const accessType = useWatch({ control: form.control, name: "accessType" });
+  const status = useWatch({ control: form.control, name: "status" });
+  const title = useWatch({ control: form.control, name: "title" });
 
   function handleModeChange(next: Mode) {
     setMode(next);
@@ -138,7 +142,7 @@ export function LearningObjectForm({
           <div className="flex flex-col gap-2">
             <Label>Tipo de objeto</Label>
             <Select
-              value={form.watch("objectType")}
+              value={objectType}
               onValueChange={(value) => form.setValue("objectType", value ?? "")}
             >
               <SelectTrigger className="w-full" aria-label="Tipo de objeto">
@@ -158,7 +162,7 @@ export function LearningObjectForm({
             <div className="flex flex-col gap-2">
               <Label>Tipo de acesso</Label>
               <Select
-                value={form.watch("accessType")}
+                value={accessType}
                 onValueChange={(value) => form.setValue("accessType", value ?? "teacher_only")}
               >
                 <SelectTrigger className="w-full" aria-label="Tipo de acesso">
@@ -175,7 +179,7 @@ export function LearningObjectForm({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full" aria-label="Status">
@@ -247,7 +251,7 @@ export function LearningObjectForm({
                   <ActivityPlayer
                     activityType={mode}
                     config={activityPreviewParsed.data.config}
-                    title={form.watch("title") || "Pré-visualização"}
+                    title={title || "Pré-visualização"}
                   />
                 ) : (
                   <p className="text-sm text-destructive">

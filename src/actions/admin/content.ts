@@ -243,12 +243,16 @@ export async function deleteContent(id: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
-  const { count } = await supabase
-    .from("downloads")
-    .select("*", { count: "exact", head: true })
-    .eq("content_id", id);
+  const [{ count: legacyCount }, { count: eventCount }] = await Promise.all([
+    supabase.from("downloads").select("*", { count: "exact", head: true }).eq("content_id", id),
+    supabase
+      .from("download_events")
+      .select("*", { count: "exact", head: true })
+      .eq("resource_type", "material")
+      .eq("resource_id", id),
+  ]);
 
-  if (count && count > 0) {
+  if ((legacyCount ?? 0) > 0 || (eventCount ?? 0) > 0) {
     return {
       error: "Este material já possui downloads registrados. Arquive-o em vez de excluir.",
     };

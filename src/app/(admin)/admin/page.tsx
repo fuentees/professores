@@ -36,7 +36,7 @@ async function getStats() {
     supabase.from("contents").select("*", { count: "exact", head: true }).eq("status", "published"),
     supabase.from("contents").select("*", { count: "exact", head: true }).eq("status", "draft"),
     supabase.from("content_views").select("*", { count: "exact", head: true }),
-    supabase.from("downloads").select("*", { count: "exact", head: true }),
+    supabase.from("download_events").select("*", { count: "exact", head: true }),
     supabase.from("content_views").select("viewed_at").gte("viewed_at", thirtyDaysAgo),
   ]);
 

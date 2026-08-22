@@ -51,7 +51,7 @@ export default async function BlogPostPage({
       </Link>
 
       <div className="relative aspect-video overflow-hidden rounded-xl border bg-gradient-to-br from-highlight-soft to-muted">
-        <Image src={coverUrl} alt={post.title} fill className="object-cover" priority />
+        <Image src={coverUrl} alt={post.title} fill sizes="(min-width: 1024px) 896px, 100vw" className="object-cover" priority />
       </div>
 
       <div>

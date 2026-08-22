@@ -18,7 +18,9 @@ export const contentSchema = z.object({
   curriculumUnitIds: z.array(z.uuid()),
   themeIds: z.array(z.uuid()),
   subthemeIds: z.array(z.uuid()),
-  contentTypeIds: z.array(z.uuid()).min(1, "Selecione ao menos um tipo de material."),
+  contentTypeIds: z
+    .array(z.uuid())
+    .length(1, "Selecione uma finalidade principal para o material."),
   tagNames: z.array(z.string()),
 
   accessType: z.enum(["public", "free_signup", "teacher_only", "subscriber_only"]),

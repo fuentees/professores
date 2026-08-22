@@ -5,20 +5,18 @@ import {
   BookOpenCheck,
   ChevronRight,
   ClipboardCheck,
-  FileText,
   GraduationCap,
   Home as HomeIcon,
   LayoutGrid,
   RotateCcw,
   Search,
   Shapes,
-  Sparkles,
   Target,
-  Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Button } from "@/components/ui/button";
+import { BrandBackdrop } from "@/components/common/brand";
 import { SectionHeader } from "@/components/common/section-header";
 import { MaterialCard } from "@/components/materials/material-card";
 import { CourseCard } from "@/components/courses/course-card";
@@ -28,13 +26,10 @@ import { fetchContentCards } from "@/lib/queries/content-cards";
 type TaskShortcut = { label: string; icon: typeof HomeIcon; typeName: string };
 
 const TASK_SHORTCUTS: TaskShortcut[] = [
-  { label: "Preparar uma aula", icon: HomeIcon, typeName: "Plano de aula" },
-  { label: "Praticar conteúdo", icon: Target, typeName: "Lista de exercícios" },
+  { label: "Preparar uma aula", icon: HomeIcon, typeName: "Planejamento" },
+  { label: "Praticar conteúdo", icon: Target, typeName: "Atividade" },
   { label: "Avaliar a turma", icon: ClipboardCheck, typeName: "Avaliação" },
-  { label: "Revisar conteúdo", icon: RotateCcw, typeName: "Resumo" },
-  { label: "Engajar os alunos", icon: Sparkles, typeName: "Jogo pedagógico" },
-  { label: "Trabalho em grupo", icon: Users, typeName: "Projeto" },
-  { label: "Recuperação", icon: FileText, typeName: "Atividade de recuperação" },
+  { label: "Apoiar e revisar", icon: RotateCcw, typeName: "Material de apoio" },
 ];
 
 export default async function HomePage() {
@@ -63,7 +58,7 @@ export default async function HomePage() {
     { count: teachersCount },
   ] = await Promise.all([
     supabase.from("education_levels").select("id, name").order("order_index"),
-    supabase.from("content_types").select("id, name"),
+    supabase.from("content_types").select("id, name").eq("status", "active"),
     fetchContentCards(supabase, { featuredOnly: true, limit: 4 }),
     fetchContentCards(supabase, { limit: 8 }),
     fetchContentCards(supabase, { freeOnly: true, limit: 4 }),
@@ -100,18 +95,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-1 flex-col">
       <section className="editorial-surface relative overflow-hidden border-b px-4 py-14 sm:py-20">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/25 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-10 right-0 h-72 w-72 rounded-full bg-interactive/20 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-bncc/15 blur-3xl"
-        />
+        <BrandBackdrop />
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 sm:px-2 lg:grid-cols-[1.05fr_.95fr]">
           <div className="flex flex-col items-start gap-6 text-left">
@@ -127,7 +111,7 @@ export default async function HomePage() {
             disciplina.
           </p>
 
-          <form action="/materiais" method="get" className="flex w-full max-w-2xl flex-col gap-2">
+          <form action="/buscar" method="get" className="flex w-full max-w-2xl flex-col gap-2">
             <label htmlFor="home-search" className="sr-only">
               O que você quer ensinar hoje?
             </label>
@@ -137,13 +121,16 @@ export default async function HomePage() {
                 id="home-search"
                 name="q"
                 type="text"
-                placeholder="Ex.: atividade sobre frações para o 6º ano"
+                placeholder="Ex.: frações, História do Brasil ou atividade para o 6º ano"
                 className="w-full bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-muted-foreground"
               />
               <Button type="submit" className="h-10 shrink-0 rounded-xl px-5">
                 Buscar <ChevronRight className="size-4" />
               </Button>
             </div>
+            <p className="px-2 text-xs text-muted-foreground">
+              Pesquisa materiais, questões, jogos, simulações e cursos em um só lugar.
+            </p>
           </form>
 
           {stats.length > 0 && (
@@ -205,7 +192,7 @@ export default async function HomePage() {
       {shortcuts.length > 0 && (
         <section className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6">
           <p className="text-sm font-medium text-muted-foreground">O que você precisa fazer hoje?</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {shortcuts.map(({ label, icon: Icon, typeId }) => (
               <Link
                 key={label}

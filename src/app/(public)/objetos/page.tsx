@@ -94,6 +94,9 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
   const filtered = withActivity.filter(
     (o) => matchesQuery(o) && matchesSubject(o) && matchesLevel(o) && matchesGrade(o) && matchesCategory(o),
   );
+  const filteredLegacy = legacy.filter(
+    (o) => matchesQuery(o) && matchesSubject(o) && matchesLevel(o) && matchesGrade(o) && !categoria,
+  );
 
   const hasActiveFilters = Boolean(q || disciplina || nivel || serie || categoria);
 
@@ -106,6 +109,15 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
     if (cat) p.set("categoria", cat);
     const qs = p.toString();
     return `/objetos${qs ? `?${qs}` : ""}`;
+  }
+
+  function returnQuery(cat: InteractiveCategory | null = categoria): string {
+    const href = buildCategoryHref(cat);
+    return href.includes("?") ? href.split("?")[1] : "";
+  }
+
+  function detailHref(slug: string, query = returnQuery()): string {
+    return `/objetos/${slug}${query ? `?retorno=${encodeURIComponent(query)}` : ""}`;
   }
 
   return (
@@ -121,12 +133,12 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && filteredLegacy.length === 0 ? (
         <InteractiveEmptyState hasFilters={hasActiveFilters} />
       ) : hasActiveFilters ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {filtered.map((o) => (
-            <InteractiveCard key={o.slug} object={toCardData(o)} />
+            <InteractiveCard key={o.slug} object={toCardData(o)} href={detailHref(o.slug)} />
           ))}
         </div>
       ) : (
@@ -142,19 +154,21 @@ export default async function ObjetosPage({ searchParams }: PageProps<"/objetos"
                 category={CATEGORY_META[cat]}
                 items={items}
                 href={buildCategoryHref(cat)}
+                detailReturnQuery={returnQuery(cat)}
               />
             );
           })}
         </div>
       )}
 
-      {legacy.length > 0 && (
+      {filteredLegacy.length > 0 && (
         <section className="space-y-4 border-t pt-8">
           <h2 className="font-semibold tracking-tight">Outros recursos</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {legacy.map((o) => (
+            {filteredLegacy.map((o) => (
               <LearningObjectCard
                 key={o.slug}
+                href={detailHref(o.slug)}
                 object={
                   {
                     slug: o.slug,

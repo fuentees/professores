@@ -10,10 +10,14 @@ export function TagInput({
   value,
   onChange,
   label = "Tags",
+  description,
+  placeholder = "Digite e pressione Enter",
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   label?: string;
+  description?: string;
+  placeholder?: string;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -37,6 +41,7 @@ export function TagInput({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor="tag-input">{label}</Label>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
       <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
         {value.map((tag) => (
           <Badge key={tag} variant="secondary" className="gap-1 py-1 pr-1">
@@ -56,7 +61,7 @@ export function TagInput({
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={addTag}
-          placeholder="Digite e pressione Enter"
+          placeholder={placeholder}
           className="h-7 w-40 border-none px-1 shadow-none focus-visible:ring-0"
         />
       </div>

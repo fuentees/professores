@@ -57,9 +57,10 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
 };
 
 export const QUESTION_TYPE_LABELS: Record<string, string> = {
+  open_response: "Resposta aberta",
   multiple_choice: "Múltipla escolha",
-  essay: "Dissertativa",
-  discursive: "Discursiva",
+  essay: "Resposta aberta",
+  discursive: "Resposta aberta",
   true_false: "Verdadeiro ou falso",
   matching: "Associação",
   fill_blank: "Completar lacunas",

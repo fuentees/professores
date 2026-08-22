@@ -73,51 +73,11 @@ insert into public.subjects (name, slug, order_index) values
   ('Preparação para o ENEM', 'preparacao-para-o-enem', 41),
   ('Orientação profissional', 'orientacao-profissional', 42);
 
--- Tipos de material
-insert into public.content_types (name, slug, order_index) values
-  ('Atividade', 'atividade', 0),
-  ('Lista de exercícios', 'lista-de-exercicios', 1),
-  ('Avaliação', 'avaliacao', 2),
-  ('Prova', 'prova', 3),
-  ('Simulado', 'simulado', 4),
-  ('Gabarito', 'gabarito', 5),
-  ('Plano de aula', 'plano-de-aula', 6),
-  ('Sequência didática', 'sequencia-didatica', 7),
-  ('Projeto', 'projeto', 8),
-  ('Roteiro de estudo', 'roteiro-de-estudo', 9),
-  ('Resumo', 'resumo', 10),
-  ('Mapa mental', 'mapa-mental', 11),
-  ('Infográfico', 'infografico', 12),
-  ('Apresentação', 'apresentacao', 13),
-  ('Apostila', 'apostila', 14),
-  ('Livro digital', 'livro-digital', 15),
-  ('Texto de apoio', 'texto-de-apoio', 16),
-  ('Texto para interpretação', 'texto-para-interpretacao', 17),
-  ('Ficha de leitura', 'ficha-de-leitura', 18),
-  ('Atividade diagnóstica', 'atividade-diagnostica', 19),
-  ('Atividade de recuperação', 'atividade-de-recuperacao', 20),
-  ('Atividade adaptada', 'atividade-adaptada', 21),
-  ('Atividade lúdica', 'atividade-ludica', 22),
-  ('Jogo pedagógico', 'jogo-pedagogico', 23),
-  ('Quiz', 'quiz', 24),
-  ('Flashcards', 'flashcards', 25),
-  ('Experimento', 'experimento', 26),
-  ('Aula prática', 'aula-pratica', 27),
-  ('Roteiro de experimento', 'roteiro-de-experimento', 28),
-  ('Vídeo', 'video', 29),
-  ('Áudio', 'audio', 30),
-  ('Podcast', 'podcast', 31),
-  ('Imagem', 'imagem', 32),
-  ('Cartaz', 'cartaz', 33),
-  ('Molde', 'molde', 34),
-  ('Planilha', 'planilha', 35),
-  ('Documento', 'documento', 36),
-  ('Link externo', 'link-externo', 37),
-  ('Objeto de aprendizagem', 'objeto-de-aprendizagem', 38),
-  ('Material da BNCC', 'material-da-bncc', 39),
-  ('Material para SAEB', 'material-para-saeb', 40),
-  ('Material para ENEM', 'material-para-enem', 41),
-  ('Material para vestibular', 'material-para-vestibular', 42),
-  ('Material para concurso', 'material-para-concurso', 43),
-  ('Material para impressão', 'material-para-impressao', 44);
+-- Finalidades principais do material. Subtipos e contextos ficam em tags;
+-- formato vem de content_files e gabarito de contents.has_answer_key.
+insert into public.content_types (name, slug, description, order_index) values
+  ('Atividade', 'atividade', 'Material que o aluno realiza para praticar, produzir ou aplicar um conteúdo.', 0),
+  ('Avaliação', 'avaliacao', 'Instrumento usado para verificar e registrar a aprendizagem dos alunos.', 1),
+  ('Planejamento', 'planejamento', 'Material que ajuda o professor a organizar o ensino e a sequência das aulas.', 2),
+  ('Material de apoio', 'material-de-apoio', 'Recurso usado para explicar, apresentar, revisar ou complementar um conteúdo.', 3);
 

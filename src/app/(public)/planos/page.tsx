@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
 import { EmptyState } from "@/components/common/empty-state";
+import { SubscriptionRequestButton } from "@/components/subscriptions/subscription-request-button";
 
 export const metadata: Metadata = {
   title: "Planos",
@@ -30,11 +31,12 @@ export default async function PlanosPage() {
     getCurrentProfile(),
   ]);
 
-  // Assinatura é liberada manualmente pelo admin (sem checkout próprio) —
-  // para quem já tem conta, "Criar conta" de novo é uma ação quebrada;
-  // manda pra tela onde o professor vê o status real da própria assinatura.
-  const ctaHref = profile ? "/painel/assinatura" : "/cadastro";
-  const ctaLabel = profile ? "Ver minha assinatura" : "Criar conta";
+  const [{ data: activeSubscription }, { data: pendingRequest }] = profile
+    ? await Promise.all([
+        supabase.from("subscriptions").select("plan_id").eq("teacher_id", profile.id).eq("status", "active").maybeSingle(),
+        supabase.from("subscription_requests").select("plan_id").eq("teacher_id", profile.id).eq("status", "pending").maybeSingle(),
+      ])
+    : [{ data: null }, { data: null }];
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-14">
@@ -70,7 +72,17 @@ export default async function PlanosPage() {
                     </li>
                   ))}
                 </ul>
-                <Button nativeButton={false} render={<Link href={ctaHref}>{ctaLabel}</Link>} />
+                {!profile ? (
+                  <Button nativeButton={false} render={<Link href="/cadastro">Criar conta</Link>} />
+                ) : activeSubscription?.plan_id === plan.id ? (
+                  <Button disabled>Plano atual</Button>
+                ) : plan.billing_period === "free" ? (
+                  <Button nativeButton={false} variant="outline" render={<Link href="/painel/assinatura">Ver minha assinatura</Link>} />
+                ) : pendingRequest?.plan_id === plan.id ? (
+                  <Button disabled>Solicitação enviada</Button>
+                ) : (
+                  <SubscriptionRequestButton planId={plan.id} planName={plan.name} />
+                )}
               </CardContent>
             </Card>
           ))}

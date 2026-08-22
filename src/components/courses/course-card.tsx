@@ -16,7 +16,7 @@ export type CourseCardData = {
 // Card de "produto" — deliberadamente mais elevado que MaterialCard
 // (shadow-sm já em repouso, radius maior, capa com overlay) pra parecer um
 // curso completo, não um arquivo pra baixar.
-export function CourseCard({ course }: { course: CourseCardData }) {
+export function CourseCard({ course, eager = false }: { course: CourseCardData; eager?: boolean }) {
   const coverUrl = course.cover_url ?? courseCover(course.slug);
 
   return (
@@ -26,7 +26,7 @@ export function CourseCard({ course }: { course: CourseCardData }) {
     >
       <div className="relative aspect-video bg-gradient-to-br from-primary/15 to-primary/5">
         {coverUrl ? (
-          <Image src={coverUrl} alt={course.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          <Image src={coverUrl} alt={course.title} fill loading={eager ? "eager" : "lazy"} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-primary/60">
             <GraduationCap className="h-10 w-10" strokeWidth={1.5} />

@@ -11,6 +11,8 @@ type ExamRow = {
   title: string;
   created_at: string;
   themes: { name: string } | null;
+  grades: { name: string } | null;
+  subjects: { name: string } | null;
   generated_exam_questions: { id: string }[];
 };
 
@@ -21,7 +23,7 @@ export default async function ProvasPage() {
   const supabase = await createClient();
   const { data: exams } = await supabase
     .from("generated_exams")
-    .select("id, title, created_at, themes(name), generated_exam_questions(id)")
+    .select("id, title, created_at, themes(name), grades(name), subjects(name), generated_exam_questions(id)")
     .eq("teacher_id", profile.id)
     .order("created_at", { ascending: false })
     .returns<ExamRow[]>();
@@ -30,15 +32,15 @@ export default async function ProvasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Provas geradas</h1>
-          <p className="text-muted-foreground">Provas e atividades que você já gerou e salvou.</p>
+          <h1 className="text-2xl font-semibold">Avaliações salvas</h1>
+          <p className="text-muted-foreground">Avaliações que você criou para aplicar às suas turmas.</p>
         </div>
         <Button
           nativeButton={false}
           render={
             <Link href="/painel/gerador">
               <Plus className="h-4 w-4" />
-              Gerar nova prova
+              Criar nova avaliação
             </Link>
           }
         />
@@ -46,7 +48,7 @@ export default async function ProvasPage() {
 
       {!exams || exams.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          Você ainda não gerou nenhuma prova.
+          Você ainda não criou nenhuma avaliação.
         </div>
       ) : (
         <div className="divide-y rounded-lg border">
@@ -55,7 +57,8 @@ export default async function ProvasPage() {
               <div>
                 <p className="font-medium">{exam.title}</p>
                 <p className="text-sm text-muted-foreground">
-                  {exam.themes?.name ?? "—"} · {exam.generated_exam_questions.length} questões ·{" "}
+                  {[exam.subjects?.name, exam.grades?.name, exam.themes?.name].filter(Boolean).join(" · ") || "Sem classificação"} ·{" "}
+                  {exam.generated_exam_questions.length} questões ·{" "}
                   {new Date(exam.created_at).toLocaleDateString("pt-BR")}
                 </p>
               </div>

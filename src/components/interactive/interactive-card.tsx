@@ -21,13 +21,13 @@ export type InteractiveCardData = {
  * com identidade de categoria (cor + ícone + CTA específico), sem imagem
  * gigante: a capa usa InteractiveCover em tamanho "card" (proporção fixa).
  */
-export function InteractiveCard({ object }: { object: InteractiveCardData }) {
+export function InteractiveCard({ object, href }: { object: InteractiveCardData; href?: string }) {
   const category = getCategoryMeta(object.activityType);
   const meta = [object.subjectName, object.gradeName].filter(Boolean).join(" · ");
 
   return (
     <Link
-      href={`/objetos/${object.slug}`}
+      href={href ?? `/objetos/${object.slug}`}
       className={`group flex flex-col overflow-hidden rounded-xl border ${category.classes.border} bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg`}
     >
       <InteractiveCover

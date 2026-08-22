@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { escapeOrFilterValue } from "@/lib/supabase/or-filter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { BnccSearchForm } from "@/components/bncc/bncc-search-form";
@@ -30,21 +29,28 @@ export default async function BnccPage({
 
   const supabase = await createClient();
 
-  let query = supabase
+  const { data: allSkills } = await supabase
     .from("bncc_skills")
     .select(
       `id, code, description, thematic_unit, knowledge_object,
       bncc_components(name, bncc_knowledge_areas(name, bncc_stages(name))),
       grades(name)`,
     )
-    .order("code");
+    .order("code")
+    .returns<SkillRow[]>();
 
-  if (q) {
-    const pattern = escapeOrFilterValue(`%${q}%`);
-    query = query.or(`code.ilike.${pattern},description.ilike.${pattern}`);
-  }
-
-  const { data: skills } = await query.returns<SkillRow[]>();
+  const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+  const normalizedQuery = normalize(q.trim());
+  const skills = normalizedQuery
+    ? (allSkills ?? []).filter((skill) => normalize([
+        skill.code,
+        skill.description,
+        skill.thematic_unit ?? "",
+        skill.knowledge_object ?? "",
+        skill.bncc_components?.name ?? "",
+        skill.grades?.name ?? "",
+      ].join(" ")).includes(normalizedQuery))
+    : (allSkills ?? []);
 
   const skillIds = (skills ?? []).map((s) => s.id);
   const relatedCounts = new Map<string, number>();
@@ -66,6 +72,7 @@ export default async function BnccPage({
           Consulte habilidades da Base Nacional Comum Curricular e veja os materiais
           relacionados.
         </p>
+        <p className="mt-1 text-sm text-muted-foreground">{skills.length} habilidade{skills.length === 1 ? "" : "s"} encontrada{skills.length === 1 ? "" : "s"}.</p>
       </div>
 
       <BnccSearchForm />
@@ -100,8 +107,7 @@ export default async function BnccPage({
                   href={`/materiais?habilidade=${skill.id}`}
                   className="flex w-fit items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  Ver {relatedCounts.get(skill.id)} material
-                  {(relatedCounts.get(skill.id) ?? 0) > 1 ? "is" : ""} relacionado
+                  Ver {relatedCounts.get(skill.id)} {(relatedCounts.get(skill.id) ?? 0) > 1 ? "materiais" : "material"} relacionado
                   {(relatedCounts.get(skill.id) ?? 0) > 1 ? "s" : ""}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>

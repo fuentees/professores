@@ -9,10 +9,12 @@ export function InteractiveSection({
   category,
   items,
   href,
+  detailReturnQuery,
 }: {
   category: CategoryMeta;
   items: InteractiveCardData[];
   href: string;
+  detailReturnQuery?: string;
 }) {
   if (items.length === 0) return null;
   const Icon = category.icon;
@@ -36,7 +38,11 @@ export function InteractiveSection({
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {items.map((item) => (
-          <InteractiveCard key={item.slug} object={item} />
+          <InteractiveCard
+            key={item.slug}
+            object={item}
+            href={`/objetos/${item.slug}${detailReturnQuery ? `?retorno=${encodeURIComponent(detailReturnQuery)}` : ""}`}
+          />
         ))}
       </div>
     </section>

@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type DashboardNavLinkData = { href: string; label: string; icon: React.ReactNode };
+export type DashboardNavLinkData = { href: string; label: string; icon: React.ReactNode; section?: string };
+
+function SectionLabel({ children }: { children: string }) {
+  return <p className="px-3 pb-1 pt-3 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">{children}</p>;
+}
 
 // Item de "raiz" de uma área (ex: /admin, /dono, /painel — só um segmento de
 // path) só fica ativo em match exato; senão qualquer sub-rota (/admin/
@@ -56,15 +60,21 @@ export function DashboardNav({
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-1 flex-col gap-1 p-3">
+    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
       <div className="flex flex-1 flex-col gap-1">
-        {items.map((item) => (
-          <NavLink key={item.href} {...item} active={isActive(pathname, item.href)} activeClassName={activeClassName} />
+        {items.map((item, index) => (
+          <div key={item.href}>
+            {item.section && item.section !== items[index - 1]?.section && <SectionLabel>{item.section}</SectionLabel>}
+            <NavLink {...item} active={isActive(pathname, item.href)} activeClassName={activeClassName} />
+          </div>
         ))}
       </div>
       <div className="mt-4 flex flex-col gap-1 border-t pt-3">
-        {bottomItems.map((item) => (
-          <NavLink key={item.href} {...item} active={isActive(pathname, item.href)} activeClassName={activeClassName} />
+        {bottomItems.map((item, index) => (
+          <div key={item.href}>
+            {item.section && item.section !== bottomItems[index - 1]?.section && <SectionLabel>{item.section}</SectionLabel>}
+            <NavLink {...item} active={isActive(pathname, item.href)} activeClassName={activeClassName} />
+          </div>
         ))}
       </div>
     </nav>

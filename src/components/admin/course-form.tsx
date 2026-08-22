@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { createCourse, updateCourse } from "@/actions/admin/course";
@@ -28,6 +28,9 @@ export function CourseForm({
     resolver: zodResolver(courseSchema),
     defaultValues,
   });
+  const accessType = useWatch({ control: form.control, name: "accessType" });
+  const status = useWatch({ control: form.control, name: "status" });
+  const certificateEnabled = useWatch({ control: form.control, name: "certificateEnabled" });
 
   async function onSubmit(values: CourseInput) {
     const result = courseId ? await updateCourse(courseId, values) : await createCourse(values);
@@ -78,7 +81,7 @@ export function CourseForm({
             <div className="flex flex-col gap-2">
               <Label>Tipo de acesso</Label>
               <Select
-                value={form.watch("accessType")}
+                value={accessType}
                 onValueChange={(value) => form.setValue("accessType", value ?? "teacher_only")}
               >
                 <SelectTrigger className="w-full">
@@ -95,7 +98,7 @@ export function CourseForm({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value ?? "draft")}
               >
                 <SelectTrigger className="w-full">
@@ -114,7 +117,7 @@ export function CourseForm({
           <label className="flex items-center justify-between rounded-md border p-3">
             <span className="text-sm">Emitir certificado ao concluir</span>
             <Switch
-              checked={form.watch("certificateEnabled")}
+              checked={certificateEnabled}
               onCheckedChange={(checked) => form.setValue("certificateEnabled", checked)}
             />
           </label>

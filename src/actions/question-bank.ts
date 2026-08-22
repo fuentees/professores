@@ -7,6 +7,7 @@ import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
 import type { BloomTaxonomyLevel, ContentDifficulty, QuestionType } from "@/types/supabase";
+import { getSearchTokens, toPostgrestSearchToken } from "@/lib/search";
 
 export type QuestionCard = {
   id: string;
@@ -19,6 +20,7 @@ export type QuestionCard = {
   subjectName: string | null;
   gradeName: string | null;
   bnccCodes: string[];
+  hasOriginalFile: boolean;
 };
 
 export type QuestionSearchFilters = {
@@ -32,7 +34,12 @@ export type QuestionSearchFilters = {
   bloomLevel?: string;
   questionType?: string;
   bnccSkillId?: string;
+  source?: "word" | "manual";
+  page?: number;
+  pageSize?: number;
 };
+
+const QUESTION_BANK_PAGE_SIZE = 24;
 
 /**
  * `questions`/`question_*` nunca são lidas via RLS pelo professor (vazaria
@@ -42,8 +49,11 @@ export type QuestionSearchFilters = {
  */
 export async function searchQuestions(
   filters: QuestionSearchFilters,
-): Promise<{ error: string | null; questions: QuestionCard[]; total: number }> {
+): Promise<{ error: string | null; questions: QuestionCard[]; total: number; page: number; totalPages: number }> {
   const admin = createAdminClient();
+  const pageSize = Math.min(5000, Math.max(1, filters.pageSize ?? QUESTION_BANK_PAGE_SIZE));
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const from = (page - 1) * pageSize;
 
   // Filtro por BNCC precisa resolver o conjunto de ids ANTES do .limit() da
   // query principal — senão a busca aplicava esse filtro só nos 24
@@ -56,13 +66,13 @@ export async function searchQuestions(
       .select("question_id")
       .eq("bncc_skill_id", filters.bnccSkillId);
     bnccQuestionIds = (linkedIds ?? []).map((l) => l.question_id);
-    if (bnccQuestionIds.length === 0) return { error: null, questions: [], total: 0 };
+    if (bnccQuestionIds.length === 0) return { error: null, questions: [], total: 0, page, totalPages: 0 };
   }
 
   let query = admin
     .from("questions")
     .select(
-      `id, code, title, statement, question_type, difficulty, bloom_primary_level,
+      `id, code, title, statement, question_type, difficulty, bloom_primary_level, original_file_path,
       subjects(name), grades(name),
       question_bncc_skills(bncc_skills(code))`,
       { count: "exact" },
@@ -70,7 +80,7 @@ export async function searchQuestions(
     .eq("status", "active")
     .eq("publication_status", "published")
     .order("created_at", { ascending: false })
-    .limit(24);
+    .range(from, from + pageSize - 1);
 
   if (filters.gradeId) query = query.eq("grade_id", filters.gradeId);
   else if (filters.gradeIds && filters.gradeIds.length > 0) query = query.in("grade_id", filters.gradeIds);
@@ -80,10 +90,18 @@ export async function searchQuestions(
   // um valor que não bate com nenhum enum simplesmente não encontra nada.
   if (filters.difficulty) query = query.eq("difficulty", filters.difficulty as ContentDifficulty);
   if (filters.bloomLevel) query = query.eq("bloom_primary_level", filters.bloomLevel as BloomTaxonomyLevel);
-  if (filters.questionType) query = query.eq("question_type", filters.questionType as QuestionType);
+  if (filters.questionType === "open_response") query = query.in("question_type", ["essay", "discursive"]);
+  else if (filters.questionType) query = query.eq("question_type", filters.questionType as QuestionType);
+  if (filters.source === "word") query = query.not("original_file_path", "is", null);
+  if (filters.source === "manual") query = query.is("original_file_path", null);
   if (filters.q) {
-    const term = filters.q.replace(/[%_]/g, (c) => `\\${c}`);
-    query = query.or(`statement.ilike.%${term}%,code.ilike.%${term}%,pedagogical_note.ilike.%${term}%`);
+    const tokens = getSearchTokens(filters.q).map(toPostgrestSearchToken).filter(Boolean);
+    if (tokens.length > 0) {
+      const searchableColumns = ["title", "statement", "code", "pedagogical_note", "original_file_path"];
+      query = query.or(
+        tokens.flatMap((token) => searchableColumns.map((column) => `${column}.ilike.%${token}%`)).join(","),
+      );
+    }
   }
   if (bnccQuestionIds) query = query.in("id", bnccQuestionIds);
 
@@ -96,13 +114,14 @@ export async function searchQuestions(
       question_type: string;
       difficulty: string;
       bloom_primary_level: string | null;
+      original_file_path: string | null;
       subjects: { name: string } | null;
       grades: { name: string } | null;
       question_bncc_skills: { bncc_skills: { code: string } | null }[];
     }[]
   >();
 
-  if (error) return { error: error.message, questions: [], total: 0 };
+  if (error) return { error: error.message, questions: [], total: 0, page, totalPages: 0 };
 
   const cards: QuestionCard[] = (data ?? []).map((q) => ({
     id: q.id,
@@ -115,9 +134,48 @@ export async function searchQuestions(
     subjectName: q.subjects?.name ?? null,
     gradeName: q.grades?.name ?? null,
     bnccCodes: q.question_bncc_skills.map((s) => s.bncc_skills?.code).filter((c): c is string => Boolean(c)),
+    hasOriginalFile: Boolean(q.original_file_path),
   }));
 
-  return { error: null, questions: cards, total: count ?? cards.length };
+  const total = count ?? cards.length;
+  return { error: null, questions: cards, total, page, totalPages: Math.ceil(total / pageSize) };
+}
+
+export type QuestionNavigation = {
+  previous: { id: string; label: string } | null;
+  next: { id: string; label: string } | null;
+  position: number;
+  total: number;
+};
+
+/** Mantém anterior/próxima dentro da mesma busca que trouxe o professor ao detalhe. */
+export async function getQuestionNavigation(
+  questionId: string,
+  filters: QuestionSearchFilters & { educationLevelId?: string },
+): Promise<QuestionNavigation | null> {
+  let gradeIds = filters.gradeIds;
+  if (filters.educationLevelId && !filters.gradeId) {
+    const admin = createAdminClient();
+    const { data: grades } = await admin
+      .from("grades")
+      .select("id")
+      .eq("education_level_id", filters.educationLevelId);
+    gradeIds = (grades ?? []).map((grade) => grade.id);
+  }
+
+  const result = await searchQuestions({ ...filters, gradeIds, page: 1, pageSize: 5000 });
+  const index = result.questions.findIndex((question) => question.id === questionId);
+  if (result.error || index < 0) return null;
+
+  const label = (question: QuestionCard) => question.code || question.title || "Questão";
+  const previous = result.questions[index - 1];
+  const next = result.questions[index + 1];
+  return {
+    previous: previous ? { id: previous.id, label: label(previous) } : null,
+    next: next ? { id: next.id, label: label(next) } : null,
+    position: index + 1,
+    total: result.total,
+  };
 }
 
 export type QuestionDetail = QuestionCard & {
@@ -127,7 +185,6 @@ export type QuestionDetail = QuestionCard & {
   pedagogicalNote: string | null;
   bloomJustification: string | null;
   accessType: string;
-  hasOriginalFile: boolean;
   parts: { id: string; label: string; prompt: string; orderIndex: number }[];
   answers: { partId: string | null; expectedAnswer: string; correctionGuidance: string | null }[];
   rubrics: { partId: string | null; level: string; points: number | null; criteria: string; orderIndex: number }[];
@@ -239,7 +296,7 @@ export async function getQuestionOriginalUrl(id: string): Promise<{ error: strin
   const admin = createAdminClient();
   const { data: question } = await admin
     .from("questions")
-    .select("original_file_path, access_type")
+    .select("id, code, title, original_file_path, access_type")
     .eq("id", id)
     .eq("status", "active")
     .eq("publication_status", "published")
@@ -256,6 +313,19 @@ export async function getQuestionOriginalUrl(id: string): Promise<{ error: strin
     .from("private")
     .createSignedUrl(question.original_file_path, 60);
   if (error || !signed) return { error: "Não foi possível gerar o link de download." };
+
+  if (profile) {
+    await admin.from("download_events").insert({
+      teacher_id: profile.id,
+      resource_type: "question",
+      resource_id: question.id,
+      resource_title: question.title || question.code || "Questão",
+      resource_href: `/painel/banco-de-questoes/${question.id}`,
+      file_name: question.original_file_path.split("/").pop() ?? "questao.docx",
+    });
+    revalidatePath("/painel");
+    revalidatePath("/painel/downloads");
+  }
 
   return { error: null, url: signed.signedUrl };
 }

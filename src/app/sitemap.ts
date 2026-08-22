@@ -4,8 +4,8 @@ import { getSiteUrl } from "@/lib/site";
 
 const STATIC_ROUTES = [
   "",
+  "/buscar",
   "/materiais",
-  "/pastas",
   "/objetos",
   "/cursos",
   "/bncc",

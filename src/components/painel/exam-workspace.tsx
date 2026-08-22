@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { ArrowDown, ArrowUp, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,7 @@ export function ExamWorkspace({
   initialShowAnswerKey = true,
   mode,
   examId,
+  curatedSelection = false,
 }: {
   filters: { gradeId: string; subjectId: string; themeId?: string; subthemeId?: string; questionTypes: QuestionType[] };
   initialQuestions: ExamQuestion[];
@@ -59,6 +60,7 @@ export function ExamWorkspace({
   initialShowAnswerKey?: boolean;
   mode: "create" | "edit";
   examId?: string;
+  curatedSelection?: boolean;
 }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<ExamQuestion[]>(initialQuestions);
@@ -114,7 +116,7 @@ export function ExamWorkspace({
 
   async function handleSave() {
     if (!title.trim()) {
-      toast.error("Informe um título para a prova.");
+      toast.error("Informe um título para a avaliação.");
       return;
     }
     if (questions.length === 0) {
@@ -138,12 +140,22 @@ export function ExamWorkspace({
     setSaving(false);
 
     if (result.error || !result.id) {
-      toast.error(result.error ?? "Não foi possível salvar a prova.");
+      toast.error(result.error ?? "Não foi possível salvar a avaliação.");
       return;
     }
 
-    toast.success(mode === "create" ? "Prova salva." : "Prova atualizada.");
+    toast.success(mode === "create" ? "Avaliação salva." : "Avaliação atualizada.");
     router.push(`/painel/provas/${result.id}`);
+  }
+
+  function moveQuestion(index: number, direction: -1 | 1) {
+    setQuestions((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   }
 
   const hasPartialFulfillment =
@@ -162,11 +174,13 @@ export function ExamWorkspace({
       )}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Prévia da prova ({questions.length} questões)</h2>
-        <Button type="button" variant="outline" size="sm" onClick={handleReshuffle} disabled={reshuffling}>
-          <RefreshCw className="h-4 w-4" />
-          {reshuffling ? "Sorteando..." : "Gerar novamente"}
-        </Button>
+        <h2 className="text-lg font-semibold">Prévia da avaliação ({questions.length} questões)</h2>
+        {!curatedSelection && (
+          <Button type="button" variant="outline" size="sm" onClick={handleReshuffle} disabled={reshuffling}>
+            <RefreshCw className="h-4 w-4" />
+            {reshuffling ? "Sorteando..." : "Gerar novamente"}
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -180,15 +194,23 @@ export function ExamWorkspace({
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <Badge variant="outline">{DIFFICULTY_LABELS[question.difficulty]}</Badge>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleSwap(question)}
-                    disabled={swappingId === question.id}
-                  >
-                    {swappingId === question.id ? "Trocando..." : "Trocar"}
-                  </Button>
+                  {curatedSelection ? (
+                    <div className="flex items-center gap-1">
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Mover questão ${index + 1} para cima`} disabled={index === 0} onClick={() => moveQuestion(index, -1)}><ArrowUp /></Button>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Mover questão ${index + 1} para baixo`} disabled={index === questions.length - 1} onClick={() => moveQuestion(index, 1)}><ArrowDown /></Button>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remover questão ${index + 1}`} onClick={() => setQuestions((current) => current.filter((item) => item.id !== question.id))}><Trash2 /></Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSwap(question)}
+                      disabled={swappingId === question.id}
+                    >
+                      {swappingId === question.id ? "Trocando..." : "Trocar"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -199,7 +221,7 @@ export function ExamWorkspace({
       <Card>
         <CardContent className="flex flex-col gap-4 pt-6">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="examTitle">Título da prova</Label>
+            <Label htmlFor="examTitle">Título da avaliação</Label>
             <Input
               id="examTitle"
               value={title}
@@ -230,7 +252,7 @@ export function ExamWorkspace({
       </Card>
 
       <Button type="button" onClick={handleSave} disabled={saving}>
-        {saving ? "Salvando..." : mode === "create" ? "Salvar prova" : "Salvar alterações"}
+        {saving ? "Salvando..." : mode === "create" ? "Salvar avaliação" : "Salvar alterações"}
       </Button>
     </div>
   );

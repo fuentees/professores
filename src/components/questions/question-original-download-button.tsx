@@ -17,7 +17,7 @@ export function QuestionOriginalDownloadButton({ questionId }: { questionId: str
       toast.error(result.error ?? "Não foi possível baixar o arquivo.");
       return;
     }
-    window.open(result.url, "_blank");
+    window.location.href = result.url;
   }
 
   return (

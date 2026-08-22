@@ -38,6 +38,13 @@ export type GeneratePreviewResult = {
 
 export type SwapResult = { error: string | null; question?: ExamQuestion };
 export type SaveExamResult = { error: string | null; id?: string };
+export type SelectedQuestionsResult = {
+  error: string | null;
+  questions?: ExamQuestion[];
+  gradeId?: string;
+  subjectId?: string;
+  questionTypes?: QuestionType[];
+};
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -376,7 +383,7 @@ export async function saveGeneratedExam(input: unknown): Promise<SaveExamResult>
   const quota = await getExamGenerationQuota(supabase, profile.id, profile.role);
   if (quota.limit !== null && quota.used >= quota.limit) {
     return {
-      error: `Você atingiu o limite de ${quota.limit} provas geradas este mês. Assine um plano para gerar mais.`,
+      error: `Você atingiu o limite de ${quota.limit} avaliações salvas este mês. Assine um plano para criar mais.`,
     };
   }
 
@@ -543,6 +550,103 @@ export async function getGeneratedExamDetail(examId: string): Promise<ExamDetail
     },
     questions: ordered,
   };
+}
+
+/** Carrega uma seleção manual na ordem escolhida, sempre revalidando disponibilidade. */
+export async function loadSelectedQuestions(questionIds: string[]): Promise<SelectedQuestionsResult> {
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para usar as questões selecionadas." };
+
+  const uniqueIds = [...new Set(questionIds)].slice(0, 30);
+  if (uniqueIds.length === 0) return { error: "Selecione pelo menos uma questão." };
+
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("questions")
+    .select("id, grade_id, subject_id, question_type")
+    .in("id", uniqueIds)
+    .eq("status", "active")
+    .eq("publication_status", "published");
+
+  const availableIds = new Set((rows ?? []).map((row) => row.id));
+  const orderedIds = uniqueIds.filter((id) => availableIds.has(id));
+  if (orderedIds.length !== uniqueIds.length) {
+    return { error: "Uma ou mais questões selecionadas não estão mais disponíveis." };
+  }
+
+  const hydrated = await hydrateQuestions(admin, orderedIds);
+  const byId = new Map(hydrated.map((question) => [question.id, question]));
+  const questions = orderedIds.map((id) => byId.get(id)).filter((question): question is ExamQuestion => Boolean(question));
+  const gradeIds = new Set((rows ?? []).map((row) => row.grade_id).filter((id): id is string => Boolean(id)));
+  const subjectIds = new Set((rows ?? []).map((row) => row.subject_id).filter((id): id is string => Boolean(id)));
+  const questionTypes = [...new Set((rows ?? []).map((row) => row.question_type as QuestionType))];
+
+  return {
+    error: null,
+    questions,
+    gradeId: gradeIds.size === 1 ? [...gradeIds][0] : "",
+    subjectId: subjectIds.size === 1 ? [...subjectIds][0] : "",
+    questionTypes,
+  };
+}
+
+export async function recordQuestionSelectionDownload(questionIds: string[]): Promise<{ error: string | null }> {
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para baixar as questões." };
+
+  const uniqueIds = [...new Set(questionIds)].slice(0, 30);
+  if (uniqueIds.length === 0) return { error: "Seleção vazia." };
+  const admin = createAdminClient();
+  const { data: first } = await admin
+    .from("questions")
+    .select("id")
+    .eq("id", uniqueIds[0])
+    .eq("status", "active")
+    .maybeSingle();
+  if (!first) return { error: "Questões não encontradas." };
+
+  const { error } = await admin.from("download_events").insert({
+    teacher_id: profile.id,
+    resource_type: "question",
+    resource_id: first.id,
+    resource_title: `${uniqueIds.length} questões selecionadas`,
+    resource_href: "/painel/banco-de-questoes",
+    file_name: `questoes-selecionadas-${uniqueIds.length}.docx`,
+  });
+  if (error) return { error: "O arquivo foi baixado, mas não entrou no histórico." };
+  revalidatePath("/painel");
+  revalidatePath("/painel/downloads");
+  return { error: null };
+}
+
+export async function recordExamDownload(examId: string): Promise<{ error: string | null }> {
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para baixar esta prova." };
+
+  const supabase = await createClient();
+  const { data: exam } = await supabase
+    .from("generated_exams")
+    .select("id, title")
+    .eq("id", examId)
+    .eq("teacher_id", profile.id)
+    .maybeSingle();
+
+  if (!exam) return { error: "Prova não encontrada." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("download_events").insert({
+    teacher_id: profile.id,
+    resource_type: "exam",
+    resource_id: exam.id,
+    resource_title: exam.title,
+    resource_href: `/painel/provas/${exam.id}`,
+    file_name: `${exam.title}.docx`,
+  });
+
+  if (error) return { error: "Não foi possível registrar o download no histórico." };
+  revalidatePath("/painel");
+  revalidatePath("/painel/downloads");
+  return { error: null };
 }
 
 export async function deleteGeneratedExam(examId: string): Promise<SaveExamResult> {

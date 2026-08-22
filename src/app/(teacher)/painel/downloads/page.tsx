@@ -10,12 +10,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 type DownloadRow = {
   id: string;
   downloaded_at: string;
-  contents: { slug: string; title: string } | null;
-  content_files: { name: string } | null;
+  resource_type: "material" | "question" | "exam" | "lesson";
+  resource_title: string;
+  resource_href: string;
+  file_name: string | null;
+};
+
+const RESOURCE_LABELS: Record<DownloadRow["resource_type"], string> = {
+  material: "Material",
+  question: "Questão",
+  exam: "Avaliação",
+  lesson: "Curso",
 };
 
 export default async function DownloadsPage() {
@@ -24,8 +34,8 @@ export default async function DownloadsPage() {
 
   const supabase = await createClient();
   const { data: downloads } = await supabase
-    .from("downloads")
-    .select("id, downloaded_at, contents(slug, title), content_files(name)")
+    .from("download_events")
+    .select("id, downloaded_at, resource_type, resource_title, resource_href, file_name")
     .eq("teacher_id", profile.id)
     .order("downloaded_at", { ascending: false })
     .limit(50)
@@ -42,7 +52,8 @@ export default async function DownloadsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material</TableHead>
+              <TableHead>Conteúdo</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Arquivo</TableHead>
               <TableHead>Baixado em</TableHead>
             </TableRow>
@@ -50,7 +61,7 @@ export default async function DownloadsPage() {
           <TableBody>
             {(!downloads || downloads.length === 0) && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
                   Nenhum download ainda.
                 </TableCell>
               </TableRow>
@@ -58,19 +69,13 @@ export default async function DownloadsPage() {
             {downloads?.map((download) => (
               <TableRow key={download.id}>
                 <TableCell>
-                  {download.contents ? (
-                    <Link
-                      href={`/materiais/${download.contents.slug}`}
-                      className="font-medium hover:underline"
-                    >
-                      {download.contents.title}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
+                  <Link href={download.resource_href} className="font-medium hover:underline">
+                    {download.resource_title}
+                  </Link>
                 </TableCell>
+                <TableCell><Badge variant="outline">{RESOURCE_LABELS[download.resource_type]}</Badge></TableCell>
                 <TableCell className="text-muted-foreground">
-                  {download.content_files?.name ?? "—"}
+                  {download.file_name ?? "Arquivo"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {new Date(download.downloaded_at).toLocaleString("pt-BR")}

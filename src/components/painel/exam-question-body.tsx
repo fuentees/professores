@@ -1,5 +1,4 @@
 import type { ExamQuestion } from "@/actions/exam-generator";
-import { QUESTION_TYPE_LABELS } from "@/lib/labels";
 
 /**
  * Linhas pontilhadas pro aluno escrever à mão na impressão. `count` maior
@@ -84,9 +83,7 @@ export function ExamQuestionBody({
       ) : question.parts.length === 0 && mode === "print" ? (
         <AnswerLines count={6} />
       ) : question.parts.length === 0 ? (
-        <p className="pl-1 text-muted-foreground">
-          {QUESTION_TYPE_LABELS[question.questionType] ?? "Questão"} (resposta aberta).
-        </p>
+        <p className="pl-1 text-muted-foreground">O aluno responderá por escrito.</p>
       ) : null}
     </>
   );

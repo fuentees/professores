@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FilterChips, type FilterChip } from "@/components/common/filter-chips";
+import { SlidersHorizontal } from "lucide-react";
+import Link from "next/link";
 
 export type FilterOption = { id: string; name: string };
 export type GradeOption = FilterOption & { educationLevelId: string };
@@ -37,6 +39,15 @@ const DOWNSTREAM: Record<FilterKey, FilterKey[]> = {
   tipo: [],
 };
 
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <span className="block px-1 text-xs font-medium text-muted-foreground">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -50,6 +61,7 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
   const tema = searchParams.get("tema") ?? "";
   const subtema = searchParams.get("subtema") ?? "";
   const tipo = searchParams.get("tipo") ?? "";
+  const [advancedOpen, setAdvancedOpen] = useState(Boolean(unidade || tema || subtema));
 
   function setFilter(key: FilterKey, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
@@ -132,8 +144,31 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
         <Button type="submit" className="h-10 rounded-xl px-6 shadow-sm">Buscar</Button>
       </form>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-7 [&_[data-slot=select-trigger]]:h-9 [&_[data-slot=select-trigger]]:rounded-xl [&_[data-slot=select-trigger]]:bg-background/50">
-        <Select value={nivel || undefined} onValueChange={(v) => setFilter("nivel", (v as string) ?? null)}>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>Use os filtros principais ou refine pelos campos pedagógicos.</span>
+        <Link href="/buscar" className="font-medium text-primary hover:underline">
+          Buscar em todo o portal
+        </Link>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-xl [&_[data-slot=select-trigger]]:bg-background/50">
+        <FilterField label="O que você precisa?">
+        <Select value={tipo || null} onValueChange={(v) => setFilter("tipo", (v as string) ?? null)}>
+          <SelectTrigger className="w-full" aria-label="Filtrar por finalidade do material">
+            <SelectValue placeholder="Todas as finalidades">{(v: string) => labelOf(data.contentTypes, v) ?? "Todas as finalidades"}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {data.contentTypes.map((option) => (
+              <SelectItem key={option.id} value={option.id}>
+                {option.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        </FilterField>
+
+        <FilterField label="Etapa de ensino">
+        <Select value={nivel || null} onValueChange={(v) => setFilter("nivel", (v as string) ?? null)}>
           <SelectTrigger className="w-full" aria-label="Filtrar por nível de ensino">
             <SelectValue placeholder="Nível">
               {(v: string) => labelOf(data.educationLevels, v) ?? "Nível"}
@@ -147,8 +182,10 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
+        </FilterField>
 
-        <Select value={serie || undefined} onValueChange={(v) => setFilter("serie", (v as string) ?? null)}>
+        <FilterField label="Série ou ano">
+        <Select value={serie || null} onValueChange={(v) => setFilter("serie", (v as string) ?? null)}>
           <SelectTrigger className="w-full" aria-label="Filtrar por série ou ano">
             <SelectValue placeholder="Série/ano">{(v: string) => labelOf(data.grades, v) ?? "Série/ano"}</SelectValue>
           </SelectTrigger>
@@ -160,8 +197,10 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
+        </FilterField>
 
-        <Select value={disciplina || undefined} onValueChange={(v) => setFilter("disciplina", (v as string) ?? null)}>
+        <FilterField label="Disciplina">
+        <Select value={disciplina || null} onValueChange={(v) => setFilter("disciplina", (v as string) ?? null)}>
           <SelectTrigger className="w-full" aria-label="Filtrar por disciplina">
             <SelectValue placeholder="Disciplina">
               {(v: string) => labelOf(data.subjects, v) ?? "Disciplina"}
@@ -175,9 +214,32 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
+        </FilterField>
+      </div>
 
+      <details
+        className="group rounded-xl border border-dashed bg-background/35"
+        open={advancedOpen}
+        onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium marker:content-none">
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="size-4 text-primary" />
+            Mais filtros de conteúdo
+          </span>
+          <span className="text-xs font-normal text-muted-foreground group-open:hidden">Unidade, tema e subtema</span>
+          <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">Ocultar</span>
+        </summary>
+        <div className="border-t px-4 py-4">
+          {!serie || !disciplina ? (
+            <p className="rounded-lg bg-muted/70 p-3 text-sm text-muted-foreground">
+              Selecione primeiro <strong className="text-foreground">Série/ano</strong> e <strong className="text-foreground">Disciplina</strong> para liberar unidade temática, tema e subtema.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3 [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-xl">
+              <FilterField label="Unidade temática">
         <Select
-          value={unidade || undefined}
+          value={unidade || null}
           onValueChange={(v) => setFilter("unidade", (v as string) ?? null)}
           disabled={!serie || !disciplina}
         >
@@ -194,8 +256,10 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
+              </FilterField>
 
-        <Select value={tema || undefined} onValueChange={(v) => setFilter("tema", (v as string) ?? null)} disabled={!unidade}>
+              <FilterField label={unidade ? "Tema" : "Tema — escolha uma unidade primeiro"}>
+        <Select value={tema || null} onValueChange={(v) => setFilter("tema", (v as string) ?? null)} disabled={!unidade}>
           <SelectTrigger className="w-full" aria-label="Filtrar por tema">
             <SelectValue placeholder="Tema">{(v: string) => labelOf(data.themes, v) ?? "Tema"}</SelectValue>
           </SelectTrigger>
@@ -207,9 +271,11 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
+              </FilterField>
 
+              <FilterField label={tema ? "Subtema" : "Subtema — escolha um tema primeiro"}>
         <Select
-          value={subtema || undefined}
+          value={subtema || null}
           onValueChange={(v) => setFilter("subtema", (v as string) ?? null)}
           disabled={!tema || availableSubthemes.length === 0}
         >
@@ -224,20 +290,11 @@ export function MaterialFilters({ data }: { data: MaterialFiltersData }) {
             ))}
           </SelectContent>
         </Select>
-
-        <Select value={tipo || undefined} onValueChange={(v) => setFilter("tipo", (v as string) ?? null)}>
-          <SelectTrigger className="w-full" aria-label="Filtrar por tipo de material">
-            <SelectValue placeholder="Tipo">{(v: string) => labelOf(data.contentTypes, v) ?? "Tipo"}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {data.contentTypes.map((option) => (
-              <SelectItem key={option.id} value={option.id}>
-                {option.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+              </FilterField>
+            </div>
+          )}
+        </div>
+      </details>
 
       {hasFilters && <FilterChips chips={chips} clearHref={pathname} />}
     </div>

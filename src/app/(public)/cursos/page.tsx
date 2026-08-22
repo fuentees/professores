@@ -25,8 +25,8 @@ export default async function CursosPage() {
         <EmptyState icon={GraduationCap} title="Nenhum curso publicado ainda" />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard key={course.slug} course={course} />
+          {courses.map((course, index) => (
+            <CourseCard key={course.slug} course={course} eager={index < 3} />
           ))}
         </div>
       )}

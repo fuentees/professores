@@ -110,7 +110,7 @@ export default async function PainelPage() {
       ? supabase.from("favorites").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
       : Promise.resolve({ count: 0 }),
     profile
-      ? supabase.from("downloads").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
+      ? supabase.from("download_events").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
       : Promise.resolve({ count: 0 }),
     profile
       ? supabase.from("generated_exams").select("*", { count: "exact", head: true }).eq("teacher_id", profile.id)
@@ -151,7 +151,7 @@ export default async function PainelPage() {
             { label: "Cursos em andamento", value: coursesInProgress, icon: GraduationCap, tint: "text-primary bg-primary/10" },
             { label: "Downloads recentes", value: downloadsCount ?? 0, icon: Download, tint: "text-muted-foreground bg-muted" },
             {
-              label: "Provas geradas",
+              label: "Avaliações salvas",
               value: examsCount ?? 0,
               icon: ClipboardCheck,
               tint: "text-assessment bg-assessment-soft",
@@ -182,7 +182,7 @@ export default async function PainelPage() {
           </div>
           <div>
             <p className="font-semibold tracking-tight group-hover:underline">Banco de questões</p>
-            <p className="text-sm text-muted-foreground">Monte provas com questões prontas por habilidade BNCC.</p>
+            <p className="text-sm text-muted-foreground">Monte avaliações com questões prontas por habilidade BNCC.</p>
           </div>
         </Link>
         <Link

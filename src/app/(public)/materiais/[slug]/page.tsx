@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { subjectBadgeClassName } from "@/lib/subject-colors";
 import { DownloadButton } from "@/components/materials/download-button";
+import { MaterialBody } from "@/components/materials/material-body";
+import { MaterialExportButtons } from "@/components/materials/material-export-buttons";
 import { FavoriteButton } from "@/components/materials/favorite-button";
 import { MaterialCard } from "@/components/materials/material-card";
 import { SectionHeader } from "@/components/common/section-header";
@@ -120,8 +122,8 @@ export default async function MaterialDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-10">
-      <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-        <Image src={coverUrl} alt={content.title} fill className="object-cover" priority />
+      <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted print:hidden">
+        <Image src={coverUrl} alt={content.title} fill sizes="(min-width: 1024px) 896px, 100vw" className="object-cover" priority />
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -151,11 +153,7 @@ export default async function MaterialDetailPage({
 
       {content.short_description && <p className="text-muted-foreground">{content.short_description}</p>}
 
-      {content.body && canSeeFiles && (
-        <div className="whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">
-          {content.body}
-        </div>
-      )}
+      {content.body && canSeeFiles && <MaterialBody body={content.body} title={content.title} />}
 
       {content.content_bncc_skills.length > 0 && (
         <div className="space-y-2 rounded-lg border p-4">
@@ -176,7 +174,7 @@ export default async function MaterialDetailPage({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4 print:hidden">
         {profile && <FavoriteButton contentId={content.id} initialFavorited={initialFavorited} />}
 
         {!canSeeFiles && (
@@ -203,15 +201,33 @@ export default async function MaterialDetailPage({
           content.content_files
             .filter((f) => f.allow_download)
             .map((file) => <DownloadButton key={file.id} fileId={file.id} fileName={file.name} />)}
+
+        {canSeeFiles && content.allow_download && content.body && (
+          <MaterialExportButtons
+            contentId={content.id}
+            trackDownload={Boolean(profile)}
+            material={{
+              title: content.title,
+              subtitle: content.subtitle,
+              description: content.short_description,
+              body: content.body,
+              author: content.author,
+              subjects: content.content_subjects.map((item) => item.subjects?.name).filter((name): name is string => Boolean(name)),
+              grades: content.content_grades.map((item) => item.grades?.name).filter((name): name is string => Boolean(name)),
+              types: content.content_content_types.map((item) => item.content_types?.name).filter((name): name is string => Boolean(name)),
+              bnccCodes: content.content_bncc_skills.map((item) => item.bncc_skills?.code).filter((code): code is string => Boolean(code)),
+            }}
+          />
+        )}
       </div>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground print:hidden">
         Este material é disponibilizado para uso pedagógico. A reprodução para fins comerciais não é
         permitida.
       </p>
 
       {relatedMaterials.length > 0 && (
-        <div className="space-y-4 pt-4">
+        <div className="space-y-4 pt-4 print:hidden">
           <SectionHeader title="Materiais relacionados" />
           <div className="grid gap-6 sm:grid-cols-2">
             {relatedMaterials.map((material) => (

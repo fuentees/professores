@@ -1,15 +1,16 @@
-import Link from "next/link";
-import { Crown, GraduationCap, type LucideIcon } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { UserMenu } from "@/components/layout/user-menu";
 import { DashboardNav } from "@/components/layout/dashboard-nav";
 import { DashboardMobileNav } from "@/components/layout/dashboard-mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandLogo } from "@/components/common/brand";
 import type { CurrentProfile } from "@/lib/auth/get-current-profile";
 
 export type DashboardNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  section?: string;
 };
 
 export function DashboardShell({
@@ -41,22 +42,22 @@ export function DashboardShell({
   // passar o componente do ícone em si (função) como prop cruzando a
   // fronteira server/client quebra a serialização RSC ("Only plain
   // objects can be passed...").
-  const items = navItems.map(({ href, label, icon: Icon }) => ({
+  const items = navItems.map(({ href, label, icon: Icon, section }) => ({
     href,
     label,
+    section,
     icon: <Icon className="h-4 w-4" />,
   }));
-  const bottomItems = bottomNavItems.map(({ href, label, icon: Icon }) => ({
+  const bottomItems = bottomNavItems.map(({ href, label, icon: Icon, section }) => ({
     href,
     label,
+    section,
     icon: <Icon className="h-4 w-4" />,
   }));
 
-  // Admin fica visualmente mais neutro (sem o gradiente coral/violeta e
-  // sem destaque coral no item ativo) — reforça que é uma área separada
-  // do app do professor, não a mesma coisa com outro menu. O painel do
-  // proprietário (owner) ganha uma terceira identidade (âmbar/coroa) pra
-  // não ser confundido com o admin de conteúdo, mesmo tendo layout igual.
+  // A marca principal permanece igual em todas as áreas. Admin e owner se
+  // diferenciam apenas pelo subtítulo e pelo destaque dos itens ativos, sem
+  // perder o reconhecimento visual do Portal do Professor.
   const resolvedVariant = variant ?? (profile.role === "admin" ? "admin" : "teacher");
   const isAdmin = resolvedVariant === "admin";
   const isOwner = resolvedVariant === "owner";
@@ -67,16 +68,12 @@ export function DashboardShell({
       : "bg-primary/10 text-primary";
 
   const logo = (
-    <Link href={homeHref} className="flex items-center gap-2.5 font-semibold">
-      <span
-        className={`flex h-8 w-8 items-center justify-center rounded-lg text-primary-foreground shadow-sm ${
-          isOwner ? "bg-amber-600" : isAdmin ? "bg-foreground" : "bg-gradient-to-br from-primary to-interactive"
-        }`}
-      >
-        {isOwner ? <Crown className="h-4.5 w-4.5" strokeWidth={2} /> : <GraduationCap className="h-4.5 w-4.5" strokeWidth={2} />}
-      </span>
-      <span className="text-sm tracking-tight">{isOwner ? "Painel do Proprietário" : "Portal do Professor"}</span>
-    </Link>
+    <BrandLogo
+      href={homeHref}
+      subtitle={isOwner ? "Proprietário" : isAdmin ? "Administração" : undefined}
+      hideNameOnMobile
+      nameClassName="text-sm"
+    />
   );
 
   return (

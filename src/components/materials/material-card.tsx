@@ -25,7 +25,7 @@ const ACCESS_LABELS: Record<string, string> = {
   subscriber_only: "Assinantes",
 };
 
-export function MaterialCard({ material }: { material: MaterialCardData }) {
+export function MaterialCard({ material, eager = false }: { material: MaterialCardData; eager?: boolean }) {
   const coverUrl = material.cover_url ?? contentCover(material.slug);
 
   return (
@@ -35,7 +35,7 @@ export function MaterialCard({ material }: { material: MaterialCardData }) {
     >
       <div className="relative aspect-[16/7.5] overflow-hidden bg-muted">
         {coverUrl ? (
-          <Image src={coverUrl} alt={material.title} fill className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+          <Image key={eager ? "eager" : "lazy"} src={coverUrl} alt={material.title} fill loading={eager ? "eager" : "lazy"} sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <ImageOff className="h-8 w-8" />

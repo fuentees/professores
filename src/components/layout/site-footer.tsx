@@ -3,7 +3,7 @@ import { GraduationCap } from "lucide-react";
 
 export function SiteFooter({ supportEmail }: { supportEmail?: string | null }) {
   return (
-    <footer className="border-t border-primary-foreground/10 bg-[color-mix(in_oklch,var(--foreground),#18213a_75%)] text-primary-foreground">
+    <footer className="border-t border-primary-foreground/10 bg-[color-mix(in_oklch,var(--foreground),#18213a_75%)] text-primary-foreground print:hidden">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 text-sm sm:grid-cols-3 sm:px-6">
         <div>
           <div className="flex items-center gap-3">
@@ -21,8 +21,8 @@ export function SiteFooter({ supportEmail }: { supportEmail?: string | null }) {
           <Link href="/materiais" className="text-primary-foreground/60 hover:text-primary-foreground">
             Materiais
           </Link>
-          <Link href="/pastas" className="text-primary-foreground/60 hover:text-primary-foreground">
-            Pastas
+          <Link href="/buscar" className="text-primary-foreground/60 hover:text-primary-foreground">
+            Buscar no portal
           </Link>
           <Link href="/objetos" className="text-primary-foreground/60 hover:text-primary-foreground">
             Recursos interativos

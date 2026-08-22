@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
@@ -52,7 +52,10 @@ export function QuestionForm({
   });
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "alternatives" });
-  const questionType = form.watch("questionType");
+  const questionType = useWatch({ control: form.control, name: "questionType" });
+  const difficulty = useWatch({ control: form.control, name: "difficulty" });
+  const alternatives = useWatch({ control: form.control, name: "alternatives" });
+  const status = useWatch({ control: form.control, name: "status" });
 
   function handleTaxonomyChange(next: TaxonomySelection) {
     setTaxonomy(next);
@@ -93,7 +96,7 @@ export function QuestionForm({
             <div className="flex flex-col gap-2">
               <Label>Tipo de questão</Label>
               <Select
-                value={form.watch("questionType")}
+                value={questionType}
                 onValueChange={(value) =>
                   form.setValue("questionType", (value as QuestionInput["questionType"]) ?? "multiple_choice")
                 }
@@ -118,7 +121,7 @@ export function QuestionForm({
             <div className="flex flex-col gap-2">
               <Label>Dificuldade</Label>
               <Select
-                value={form.watch("difficulty")}
+                value={difficulty}
                 onValueChange={(value) =>
                   form.setValue("difficulty", (value as QuestionInput["difficulty"]) ?? "medium")
                 }
@@ -162,7 +165,7 @@ export function QuestionForm({
                   <input
                     type="radio"
                     name="correctAlternative"
-                    checked={form.watch(`alternatives.${index}.isCorrect`)}
+                    checked={alternatives[index]?.isCorrect ?? false}
                     onChange={() => {
                       fields.forEach((_, i) => form.setValue(`alternatives.${i}.isCorrect`, i === index));
                     }}
@@ -208,7 +211,7 @@ export function QuestionForm({
           <div className="flex flex-col gap-2">
             <Label>Status</Label>
             <Select
-              value={form.watch("status")}
+              value={status}
               onValueChange={(value) => form.setValue("status", (value as QuestionInput["status"]) ?? "active")}
             >
               <SelectTrigger className="w-full sm:w-72">

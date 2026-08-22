@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { updateLessonDetail } from "@/actions/admin/course";
@@ -25,6 +25,7 @@ export function LessonDetailForm({
     resolver: zodResolver(lessonDetailSchema),
     defaultValues,
   });
+  const status = useWatch({ control: form.control, name: "status" });
 
   async function onSubmit(values: LessonDetailInput) {
     const result = await updateLessonDetail(lessonId, values);
@@ -67,7 +68,7 @@ export function LessonDetailForm({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                value={form.watch("status")}
+                value={status}
                 onValueChange={(value) => form.setValue("status", value ?? "active")}
               >
                 <SelectTrigger className="w-full">

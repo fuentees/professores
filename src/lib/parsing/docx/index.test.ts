@@ -144,6 +144,17 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.bnccCodes).toContain("EF04GE01");
   });
 
+  it("preserva espaços no gabarito quando o Word alterna formatação no meio da frase (GEO 4-001)", async () => {
+    const { draft } = await parseQuestionDocx(loadFixture("geo4-001.docx"));
+    const answerText = draft.answers.map((answer) => answer.expectedAnswer).join("\n");
+
+    expect(answerText).toContain("o excluiram do jogo");
+    expect(answerText).toContain("que imigrante é");
+    expect(answerText).toContain("o migrante interno é");
+    expect(answerText).not.toContain("oexcluiramdo");
+    expect(answerText).not.toContain("queimigranteé");
+  });
+
   it("nunca lança para nenhum dos documentos reais do acervo (robustez)", async () => {
     const files = [
       "his4-1t-001-a.docx",

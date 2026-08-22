@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm, type FieldValues, type UseFormReturn } from "react-hook-form";
+import { useForm, useWatch, type FieldValues, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodType } from "zod";
 import { toast } from "sonner";
@@ -92,6 +92,10 @@ export function CatalogManager<TRow extends CatalogRow, TValues extends FieldVal
     resolver: zodResolver(schema as any),
     defaultValues: defaultValues() as never,
   }) as unknown as UseFormReturn<TValues>;
+  const statusValue = useWatch({
+    control: form.control,
+    name: "status" as never,
+  }) as unknown as string;
 
   function openCreate() {
     setEditing(null);
@@ -184,7 +188,7 @@ export function CatalogManager<TRow extends CatalogRow, TValues extends FieldVal
                 <div className="flex flex-1 flex-col gap-2">
                   <Label>Status</Label>
                   <Select
-                    value={form.watch("status" as never) as unknown as string}
+                    value={statusValue}
                     onValueChange={(value) =>
                       form.setValue("status" as never, (value ?? "active") as never)
                     }

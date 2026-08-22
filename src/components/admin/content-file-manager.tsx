@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileIcon, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,7 @@ export function ContentFileManager({
   coverUrl: string | null;
   files: ContentFileRow[];
 }) {
+  const router = useRouter();
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -49,6 +52,7 @@ export function ContentFileManager({
       return;
     }
     toast.success("Capa atualizada.");
+    router.refresh();
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -65,11 +69,17 @@ export function ContentFileManager({
       return;
     }
     toast.success("Arquivo adicionado.");
+    router.refresh();
   }
 
   async function handleRemoveFile(fileId: string) {
     const result = await removeContentFile(fileId);
-    if (result.error) toast.error(result.error);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Arquivo removido.");
+    router.refresh();
   }
 
   return (
@@ -113,11 +123,19 @@ export function ContentFileManager({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Arquivos do material</CardTitle>
+          <CardTitle className="text-base">Arquivos para download</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
+          <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            O texto do material já gera Word e impressão automaticamente. Use esta área apenas para anexos extras.
+            Um Word enviado aqui fica disponível como anexo, mas não cria questões no banco.
+            Para extrair questões, use{" "}
+            <Link href="/admin/questoes/importar" className="font-medium text-primary underline underline-offset-2">
+              Importar questões Word
+            </Link>.
+          </div>
           {files.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nenhum arquivo enviado ainda.</p>
+            <p className="text-sm text-muted-foreground">Nenhum anexo extra — o Word automático continua disponível.</p>
           )}
           {files.map((file) => (
             <div key={file.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
@@ -128,7 +146,7 @@ export function ContentFileManager({
                   ({file.file_type.toUpperCase()} · {formatSize(file.file_size)})
                 </span>
               </span>
-              <Button variant="ghost" size="icon-sm" onClick={() => handleRemoveFile(file.id)}>
+              <Button variant="ghost" size="icon-sm" aria-label={`Remover ${file.name}`} onClick={() => handleRemoveFile(file.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

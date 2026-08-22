@@ -27,7 +27,7 @@ export default async function BlogPage() {
         <EmptyState icon={Newspaper} title="Nenhum artigo publicado ainda" description="Volte em breve pra conferir novos conteúdos." />
       ) : (
         <div className="grid gap-6 sm:grid-cols-2">
-          {posts.map((post) => (
+          {posts.map((post, index) => (
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
@@ -35,7 +35,7 @@ export default async function BlogPage() {
             >
               <div className="relative aspect-video bg-gradient-to-br from-highlight-soft to-muted">
                 {post.cover_url || blogCover(post.slug) ? (
-                  <Image src={post.cover_url ?? blogCover(post.slug)} alt={post.title} fill className="object-cover" />
+                  <Image src={post.cover_url ?? blogCover(post.slug)} alt={post.title} fill loading={index < 4 ? "eager" : "lazy"} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-highlight">
                     <Newspaper className="h-9 w-9" strokeWidth={1.5} />

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getQuestionDetail } from "@/actions/question-bank";
+import { getQuestionDetail, getQuestionNavigation, type QuestionSearchFilters } from "@/actions/question-bank";
 import { fetchQuestionDocumentBlocks } from "@/lib/queries/question-document-blocks";
 import { Badge } from "@/components/ui/badge";
 import { DIFFICULTY_LABELS, BLOOM_TAXONOMY_LABELS, QUESTION_TYPE_LABELS, RUBRIC_LEVEL_LABELS } from "@/lib/labels";
@@ -11,14 +11,37 @@ import { CollapsibleSection } from "@/components/questions/collapsible-section";
 import { QuestionDocumentRenderer } from "@/components/questions/question-document-renderer";
 import { QuestionFavoriteButton } from "@/components/questions/question-favorite-button";
 import { QuestionOriginalDownloadButton } from "@/components/questions/question-original-download-button";
+import { QuestionSelectionToggle } from "@/components/questions/question-selection";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 export default async function QuestionDetailPage({
   params,
+  searchParams,
 }: PageProps<"/painel/banco-de-questoes/[id]">) {
   const { id } = await params;
+  const rawSearchParams = await searchParams;
+  const returnQuery = typeof rawSearchParams.retorno === "string" ? rawSearchParams.retorno : "";
+  const context = new URLSearchParams(returnQuery);
+  const sourceParam = context.get("origem");
+  const navigationFilters: QuestionSearchFilters & { educationLevelId?: string } = {
+    q: context.get("q") || undefined,
+    educationLevelId: context.get("nivel") || undefined,
+    gradeId: context.get("serie") || undefined,
+    subjectId: context.get("disciplina") || undefined,
+    academicPeriodId: context.get("periodo") || undefined,
+    difficulty: context.get("complexidade") || undefined,
+    bloomLevel: context.get("bloom") || undefined,
+    questionType: context.get("tipo") || undefined,
+    source: sourceParam === "word" || sourceParam === "manual" ? sourceParam : undefined,
+  };
   const result = await getQuestionDetail(id);
   if (result.error || !result.question) notFound();
   const question = result.question;
+  const navigation = await getQuestionNavigation(id, navigationFilters);
+  const backHref = returnQuery ? `/painel/banco-de-questoes?${returnQuery}` : "/painel/banco-de-questoes";
+  const detailHref = (questionId: string) =>
+    `/painel/banco-de-questoes/${questionId}${returnQuery ? `?retorno=${encodeURIComponent(returnQuery)}` : ""}`;
 
   const profile = await getCurrentProfile();
   let initialFavorited = false;
@@ -41,12 +64,24 @@ export default async function QuestionDetailPage({
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <nav className="text-sm text-muted-foreground">
-        <Link href="/painel/banco-de-questoes" className="hover:underline">
+        <Link href={backHref} className="hover:underline">
           Banco de questões
         </Link>
         {question.subjectName && <span> / {question.subjectName}</span>}
         {question.gradeName && <span> / {question.gradeName}</span>}
       </nav>
+
+      {navigation && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+          {navigation.previous ? (
+            <Button nativeButton={false} variant="outline" size="sm" render={<Link href={detailHref(navigation.previous.id)}><ArrowLeft />Anterior</Link>} />
+          ) : <Button variant="outline" size="sm" disabled><ArrowLeft />Anterior</Button>}
+          <span className="text-sm font-medium">Questão {navigation.position} de {navigation.total}</span>
+          {navigation.next ? (
+            <Button nativeButton={false} variant="outline" size="sm" render={<Link href={detailHref(navigation.next.id)}>Próxima<ArrowRight /></Link>} />
+          ) : <Button variant="outline" size="sm" disabled>Próxima<ArrowRight /></Button>}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {question.code && <Badge variant="outline" className="font-mono">{question.code}</Badge>}
@@ -140,6 +175,7 @@ export default async function QuestionDetailPage({
       )}
 
       <div className="flex flex-wrap items-center gap-3">
+        <QuestionSelectionToggle questionId={question.id} />
         {profile && <QuestionFavoriteButton questionId={question.id} initialFavorited={initialFavorited} />}
         {question.hasOriginalFile && <QuestionOriginalDownloadButton questionId={question.id} />}
       </div>

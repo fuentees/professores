@@ -14,13 +14,24 @@ import {
 } from "@/components/admin/cascading-taxonomy-select";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import { generateExamPreview, type ExamQuestion } from "@/actions/exam-generator";
-import { MAX_QUESTIONS_PER_EXAM, EXAM_QUESTION_TYPES } from "@/lib/validations/exam-generator";
-import { QUESTION_TYPE_LABELS } from "@/lib/labels";
+import { MAX_QUESTIONS_PER_EXAM } from "@/lib/validations/exam-generator";
 import type { QuestionType } from "@/types/supabase";
 
 type Requested = { easy: number; medium: number; hard: number };
 
-const DEFAULT_QUESTION_TYPES: QuestionType[] = ["multiple_choice", "essay"];
+const DEFAULT_QUESTION_TYPES: QuestionType[] = ["multiple_choice", "essay", "discursive"];
+
+const QUESTION_TYPE_GROUPS: { label: string; types: QuestionType[] }[] = [
+  { label: "Múltipla escolha", types: ["multiple_choice"] },
+  { label: "Resposta aberta", types: ["essay", "discursive"] },
+  { label: "Verdadeiro ou falso", types: ["true_false"] },
+  { label: "Associação", types: ["matching"] },
+  { label: "Completar lacunas", types: ["fill_blank"] },
+  { label: "Ordenação", types: ["ordering"] },
+  { label: "Argumentativa", types: ["argumentative"] },
+  { label: "Baseada em imagem", types: ["image_based"] },
+  { label: "Mista", types: ["mixed"] },
+];
 
 export function ExamGeneratorForm({
   taxonomyOptions,
@@ -59,8 +70,15 @@ export function ExamGeneratorForm({
     questionTypes,
   };
 
-  function toggleType(type: QuestionType, checked: boolean) {
-    setQuestionTypes((prev) => (checked ? [...prev, type] : prev.filter((t) => t !== type)));
+  function toggleTypeGroup(types: QuestionType[], checked: boolean) {
+    setQuestionTypes((previous) => {
+      const next = new Set(previous);
+      for (const type of types) {
+        if (checked) next.add(type);
+        else next.delete(type);
+      }
+      return [...next];
+    });
   }
 
   async function handleGenerate() {
@@ -73,7 +91,7 @@ export function ExamGeneratorForm({
       return;
     }
     if (total > MAX_QUESTIONS_PER_EXAM) {
-      toast.error(`Máximo de ${MAX_QUESTIONS_PER_EXAM} questões por prova.`);
+      toast.error(`Máximo de ${MAX_QUESTIONS_PER_EXAM} questões por avaliação.`);
       return;
     }
     if (questionTypes.length === 0) {
@@ -185,14 +203,14 @@ export function ExamGeneratorForm({
             <div className="flex flex-col gap-2">
               <Label>Tipo de questão</Label>
               <div className="flex flex-wrap gap-4">
-                {EXAM_QUESTION_TYPES.map((type) => (
-                  <label key={type} className="flex items-center gap-2 text-sm">
+                {QUESTION_TYPE_GROUPS.map((group) => (
+                  <label key={group.label} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={questionTypes.includes(type)}
-                      onChange={(e) => toggleType(type, e.target.checked)}
+                      checked={group.types.every((type) => questionTypes.includes(type))}
+                      onChange={(e) => toggleTypeGroup(group.types, e.target.checked)}
                     />
-                    {QUESTION_TYPE_LABELS[type] ?? type}
+                    {group.label}
                   </label>
                 ))}
               </div>
@@ -205,7 +223,7 @@ export function ExamGeneratorForm({
             )}
             {total > MAX_QUESTIONS_PER_EXAM && (
               <p className="text-sm font-medium text-destructive">
-                Máximo de {MAX_QUESTIONS_PER_EXAM} questões por prova — reduza as quantidades acima.
+                Máximo de {MAX_QUESTIONS_PER_EXAM} questões por avaliação — reduza as quantidades acima.
               </p>
             )}
             {questionTypes.length === 0 && (

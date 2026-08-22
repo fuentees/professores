@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -69,6 +69,8 @@ export function BnccSkillsManager({
       status: "active" as const,
     },
   });
+  const componentId = useWatch({ control: form.control, name: "componentId" });
+  const gradeId = useWatch({ control: form.control, name: "gradeId" });
 
   const componentName = (id: string) => components.find((c) => c.id === id)?.name ?? "—";
   const gradeName = (id: string | null) => grades.find((g) => g.id === id)?.name ?? "—";
@@ -166,7 +168,7 @@ export function BnccSkillsManager({
                 <div className="flex flex-col gap-2">
                   <Label>Componente curricular</Label>
                   <Select
-                    value={form.watch("componentId")}
+                    value={componentId}
                     onValueChange={(value) => form.setValue("componentId", value ?? "")}
                   >
                     <SelectTrigger className="w-full">
@@ -186,7 +188,7 @@ export function BnccSkillsManager({
                 <div className="flex flex-col gap-2">
                   <Label>Série/ano</Label>
                   <Select
-                    value={form.watch("gradeId")}
+                    value={gradeId}
                     onValueChange={(value) => form.setValue("gradeId", value ?? "")}
                   >
                     <SelectTrigger className="w-full">

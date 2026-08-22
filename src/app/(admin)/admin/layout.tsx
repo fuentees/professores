@@ -28,7 +28,7 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/admin/disciplinas", label: "Disciplinas", icon: Tags },
   { href: "/admin/niveis-series", label: "Níveis e séries", icon: ListTree },
   { href: "/admin/unidades-temas", label: "Unidades e temas", icon: ListTree },
-  { href: "/admin/tipos-materiais", label: "Tipos de material", icon: Ticket },
+  { href: "/admin/tipos-materiais", label: "Classificação dos materiais", icon: Ticket },
   { href: "/admin/pastas", label: "Pastas e coleções", icon: FolderOpen },
   { href: "/admin/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/admin/objetos", label: "Objetos de aprendizagem", icon: LayoutGrid },

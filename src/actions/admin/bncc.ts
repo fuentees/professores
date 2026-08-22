@@ -224,6 +224,26 @@ export async function linkContentBnccSkill(contentId: string, skillId: string): 
   return { error: null };
 }
 
+export async function linkContentBnccSkills(contentId: string, skillIds: string[]): Promise<ActionResult> {
+  const guard = await guardAdmin();
+  if (guard) return guard;
+  if (skillIds.length === 0) return { error: null };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("content_bncc_skills")
+    .upsert(
+      Array.from(new Set(skillIds)).map((bnccSkillId) => ({
+        content_id: contentId,
+        bncc_skill_id: bnccSkillId,
+      })),
+      { onConflict: "content_id,bncc_skill_id", ignoreDuplicates: true },
+    );
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/materiais/${contentId}/editar`);
+  return { error: null };
+}
+
 export async function unlinkContentBnccSkill(id: string, contentId: string): Promise<ActionResult> {
   const guard = await guardAdmin();
   if (guard) return guard;

@@ -24,10 +24,11 @@ export type LearningObjectCardData = {
  * (upload/link externo, ex: vídeo, infográfico) — mantém o card genérico
  * mais simples abaixo, já que não pertence a nenhuma categoria de jogo.
  */
-export function LearningObjectCard({ object }: { object: LearningObjectCardData }) {
+export function LearningObjectCard({ object, href }: { object: LearningObjectCardData; href?: string }) {
   if (object.activity_type) {
     return (
       <InteractiveCard
+        href={href}
         object={{
           slug: object.slug,
           title: object.title,
@@ -45,12 +46,12 @@ export function LearningObjectCard({ object }: { object: LearningObjectCardData 
 
   return (
     <Link
-      href={`/objetos/${object.slug}`}
+      href={href ?? `/objetos/${object.slug}`}
       className="group flex flex-col overflow-hidden rounded-lg border transition-shadow hover:shadow-md"
     >
       <div className="relative aspect-video bg-muted">
         {coverUrl ? (
-          <Image src={coverUrl} alt={object.title} fill className="object-cover" />
+          <Image src={coverUrl} alt={object.title} fill sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
             <LayoutGrid className="h-10 w-10" strokeWidth={1.5} />

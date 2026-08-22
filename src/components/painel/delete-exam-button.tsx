@@ -20,7 +20,7 @@ export function DeleteExamButton({ id, title }: { id: string; title: string }) {
   async function handleDelete() {
     const result = await deleteGeneratedExam(id);
     if (result.error) toast.error(result.error);
-    else toast.success("Prova excluída.");
+    else toast.success("Avaliação excluída.");
   }
 
   return (

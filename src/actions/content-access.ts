@@ -27,7 +27,7 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
 
   const { data: file } = await admin
     .from("content_files")
-    .select("id, storage_path, allow_download, content_id")
+    .select("id, name, storage_path, allow_download, content_id")
     .eq("id", contentFileId)
     .single();
 
@@ -35,7 +35,7 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
 
   const { data: content } = await admin
     .from("contents")
-    .select("status, allow_download, access_type")
+    .select("id, title, slug, status, allow_download, access_type")
     .eq("id", file.content_id)
     .single();
 
@@ -72,13 +72,54 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
 
   if (error || !signed) return { error: "Não foi possível gerar o link de download." };
 
-  await admin.from("downloads").insert({
+  await admin.from("download_events").insert({
     teacher_id: profile?.id ?? null,
-    content_id: file.content_id,
-    content_file_id: file.id,
+    resource_type: "material",
+    resource_id: content.id,
+    resource_title: content.title,
+    resource_href: `/materiais/${content.slug}`,
+    file_name: file.name,
   });
 
   return { error: null, url: signed.signedUrl };
+}
+
+/** Registra o Word gerado no próprio navegador para materiais sem anexo. */
+export async function recordGeneratedMaterialDownload(contentId: string): Promise<ActionResult> {
+  const profile = await requireActiveProfile();
+  if (!profile) return { error: "Faça login para baixar este material." };
+
+  const admin = createAdminClient();
+  const { data: content } = await admin
+    .from("contents")
+    .select("id, title, slug, status, allow_download, access_type")
+    .eq("id", contentId)
+    .maybeSingle();
+
+  if (!content || content.status !== "published") return { error: "Este material não está disponível." };
+  if (!content.allow_download) return { error: "O download deste material não é permitido." };
+
+  const entitled = await canAccessResource(
+    admin,
+    profile,
+    { accessType: content.access_type as ResourceAccessType },
+    { contentId },
+  );
+  if (!entitled) return { error: "Seu plano não permite baixar este material." };
+
+  const { error } = await admin.from("download_events").insert({
+    teacher_id: profile.id,
+    resource_type: "material",
+    resource_id: content.id,
+    resource_title: content.title,
+    resource_href: `/materiais/${content.slug}`,
+    file_name: `${content.title}.docx`,
+  });
+
+  if (error) return { error: "O arquivo foi gerado, mas não foi possível registrá-lo no histórico." };
+  revalidatePath("/painel");
+  revalidatePath("/painel/downloads");
+  return { error: null };
 }
 
 export async function toggleFavorite(contentId: string): Promise<ActionResult> {

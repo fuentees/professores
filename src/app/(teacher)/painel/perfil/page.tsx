@@ -23,7 +23,7 @@ export default async function PerfilPage() {
       <div className="border-t pt-8">
         <h2 className="text-xl font-semibold">Dados para impressão</h2>
         <p className="text-muted-foreground">
-          Logo, nome e telefone da escola aparecem prontos no cabeçalho quando você imprimir uma prova.
+          Logo, nome e telefone da escola aparecem prontos no cabeçalho quando você imprimir uma avaliação.
         </p>
         <div className="mt-6">
           <PrintSettingsForm profile={profile} />

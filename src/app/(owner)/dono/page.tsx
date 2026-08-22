@@ -112,7 +112,7 @@ export default async function DonoPage() {
         />
         <StatCard label="Planos ativos" value={planCount ?? 0} />
         <StatCard label="Questões publicadas" value={questionCount ?? 0} />
-        <StatCard label="Provas geradas" value={examCount ?? 0} />
+        <StatCard label="Avaliações salvas" value={examCount ?? 0} />
       </div>
 
       <div className="space-y-3">

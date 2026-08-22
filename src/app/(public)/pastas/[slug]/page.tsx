@@ -93,7 +93,7 @@ export default async function FolderDetailPage({
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-10">
       <div className="relative aspect-[3/1] overflow-hidden rounded-lg border bg-muted">
-        <Image src={coverUrl} alt={folder.title} fill className="object-cover" priority />
+        <Image src={coverUrl} alt={folder.title} fill sizes="(min-width: 1280px) 1152px, 100vw" className="object-cover" priority />
       </div>
 
       <div>
