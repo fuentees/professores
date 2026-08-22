@@ -3,12 +3,34 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireOwner, NotOwnerError } from "@/lib/auth/require-owner";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionResult = { error: string | null };
 
 const ADMINS_PATH = "/dono/administradores";
 const profileIdSchema = z.string().uuid("Conta inválida.");
+const createAdminAccountSchema = z
+  .object({
+    fullName: z.string().trim().min(2, "Informe o nome completo."),
+    email: z.email("Informe um e-mail válido."),
+    temporaryPassword: z
+      .string()
+      .min(8, "A senha deve ter no mínimo 8 caracteres.")
+      .regex(/[a-zA-Z]/, "A senha deve conter ao menos uma letra.")
+      .regex(/[0-9]/, "A senha deve conter ao menos um número."),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.temporaryPassword === data.confirmPassword, {
+    message: "As senhas não coincidem.",
+    path: ["confirmPassword"],
+  });
+
+export type CreateAdminAccountState = {
+  errors?: Record<string, string[]>;
+  message?: string;
+  success?: boolean;
+} | undefined;
 
 async function getOwnerOrError() {
   try {
@@ -22,6 +44,65 @@ async function getOwnerOrError() {
 function revalidateAdminPages() {
   revalidatePath(ADMINS_PATH);
   revalidatePath("/admin/professores");
+}
+
+export async function createAdminAccount(
+  _state: CreateAdminAccountState,
+  formData: FormData,
+): Promise<CreateAdminAccountState> {
+  const parsed = createAdminAccountSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    temporaryPassword: formData.get("temporaryPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors as Record<string, string[]> };
+  }
+
+  const authorization = await getOwnerOrError();
+  if (!authorization.owner) return { message: authorization.error };
+
+  const admin = createAdminClient();
+  const { data, error: createError } = await admin.auth.admin.createUser({
+    email: parsed.data.email.toLowerCase(),
+    password: parsed.data.temporaryPassword,
+    email_confirm: true,
+    user_metadata: { full_name: parsed.data.fullName },
+  });
+
+  if (createError || !data.user) {
+    const alreadyExists = createError?.message.toLowerCase().includes("already") ?? false;
+    return {
+      message: alreadyExists
+        ? "Já existe uma conta com este e-mail. Localize-a abaixo e use “Promover a admin”."
+        : "Não foi possível criar a conta administradora.",
+    };
+  }
+
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .update({
+      full_name: parsed.data.fullName,
+      role: "admin",
+      status: "active",
+      is_owner: false,
+    })
+    .eq("auth_user_id", data.user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    return { message: "A conta não pôde receber a permissão administrativa e foi cancelada." };
+  }
+
+  revalidateAdminPages();
+  return {
+    success: true,
+    message: "Administrador criado. A conta já pode entrar sem confirmar o e-mail.",
+  };
 }
 
 export async function promoteToAdmin(profileId: string): Promise<ActionResult> {

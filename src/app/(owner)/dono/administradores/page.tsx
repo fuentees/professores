@@ -3,6 +3,7 @@ import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { createClient } from "@/lib/supabase/server";
 import { AdminRoleAction } from "@/components/owner/admin-role-action";
 import { AdminOwnerToggle } from "@/components/owner/admin-owner-toggle";
+import { CreateAdminAccountForm } from "@/components/owner/create-admin-account-form";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,6 +33,18 @@ export default async function DonoAdministradoresPage() {
           do conteúdo; somente proprietários gerenciam o negócio e as permissões administrativas.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Criar administrador</CardTitle>
+          <CardDescription>
+            Crie uma conta já ativa, sem confirmação por e-mail. Ela terá acesso administrativo, mas não será proprietária.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CreateAdminAccountForm />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
