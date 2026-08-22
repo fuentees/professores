@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { setOwnerFlag } from "@/actions/owner/admins";
@@ -14,6 +15,7 @@ export function AdminOwnerToggle({
   initialIsOwner: boolean;
   disabled?: boolean;
 }) {
+  const router = useRouter();
   const [isOwner, setIsOwner] = useState(initialIsOwner);
   const [pending, startTransition] = useTransition();
 
@@ -28,8 +30,19 @@ export function AdminOwnerToggle({
         return;
       }
       toast.success(checked ? "Promovido a proprietário." : "Permissão de proprietário removida.");
+      router.refresh();
     });
   }
 
-  return <Switch checked={isOwner} onCheckedChange={handleChange} disabled={disabled || pending} />;
+  return (
+    <label className="inline-flex items-center gap-2 text-sm">
+      <Switch
+        checked={isOwner}
+        onCheckedChange={handleChange}
+        disabled={disabled || pending}
+        aria-label="Permissão de proprietário"
+      />
+      <span>{isOwner ? "Proprietário" : "Admin de conteúdo"}</span>
+    </label>
+  );
 }
