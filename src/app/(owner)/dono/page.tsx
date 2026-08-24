@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendSparkline } from "@/components/common/trend-sparkline";
+import { PageHeader } from "@/components/common/page-header";
 import { bucketByDay } from "@/lib/trend";
 
 function StatCard({
@@ -92,10 +93,7 @@ export default async function DonoPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Visão geral</h1>
-        <p className="text-muted-foreground">Indicadores de negócio da plataforma — professores, assinaturas e uso.</p>
-      </div>
+      <PageHeader title="Visão geral" description="Indicadores de negócio da plataforma — professores, assinaturas e uso." />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

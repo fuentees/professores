@@ -1,5 +1,6 @@
 import { getSiteSettings } from "@/actions/owner/settings";
 import { SiteSettingsForm } from "@/components/owner/site-settings-form";
+import { PageHeader } from "@/components/common/page-header";
 
 export default async function DonoConfiguracoesPage() {
   const settings = await getSiteSettings();
@@ -10,10 +11,7 @@ export default async function DonoConfiguracoesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Configurações</h1>
-        <p className="text-muted-foreground">Ajustes gerais que afetam o site público.</p>
-      </div>
+      <PageHeader title="Configurações" description="Ajustes gerais que afetam o site público." />
 
       <SiteSettingsForm settings={settings} />
     </div>
