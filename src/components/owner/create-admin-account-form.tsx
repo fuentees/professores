@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -8,16 +8,19 @@ import { createAdminAccount } from "@/actions/owner/admins";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 export function CreateAdminAccountForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const [state, action, pending] = useActionState(createAdminAccount, undefined);
 
   useEffect(() => {
     if (!state?.success) return;
     toast.success(state.message);
     formRef.current?.reset();
+    setIsOwner(false);
     router.refresh();
   }, [router, state]);
 
@@ -69,13 +72,23 @@ export function CreateAdminAccountForm() {
         <p className="text-sm text-destructive" role="alert">{state.message}</p>
       )}
 
+      <label className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm">
+        <span>
+          <span className="font-medium">Conceder permissão de proprietário</span>
+          <p className="text-xs text-muted-foreground">
+            Proprietários também gerenciam outros admins, planos e configurações do site. Deixe desligado para um admin de conteúdo comum.
+          </p>
+        </span>
+        <Switch name="isOwner" checked={isOwner} onCheckedChange={setIsOwner} />
+      </label>
+
       <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           Nenhum e-mail será enviado. Entregue a senha temporária com segurança e peça para a pessoa alterá-la após o primeiro acesso.
         </p>
         <Button type="submit" disabled={pending} className="shrink-0">
           <ShieldPlus />
-          {pending ? "Criando administrador..." : "Criar administrador"}
+          {pending ? (isOwner ? "Criando proprietário..." : "Criando administrador...") : isOwner ? "Criar proprietário" : "Criar administrador"}
         </Button>
       </div>
     </form>

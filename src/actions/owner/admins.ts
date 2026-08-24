@@ -20,6 +20,7 @@ const createAdminAccountSchema = z
       .regex(/[a-zA-Z]/, "A senha deve conter ao menos uma letra.")
       .regex(/[0-9]/, "A senha deve conter ao menos um número."),
     confirmPassword: z.string(),
+    isOwner: z.boolean(),
   })
   .refine((data) => data.temporaryPassword === data.confirmPassword, {
     message: "As senhas não coincidem.",
@@ -55,6 +56,7 @@ export async function createAdminAccount(
     email: formData.get("email"),
     temporaryPassword: formData.get("temporaryPassword"),
     confirmPassword: formData.get("confirmPassword"),
+    isOwner: formData.get("isOwner") === "on",
   });
 
   if (!parsed.success) {
@@ -87,7 +89,7 @@ export async function createAdminAccount(
       full_name: parsed.data.fullName,
       role: "admin",
       status: "active",
-      is_owner: false,
+      is_owner: parsed.data.isOwner,
     })
     .eq("auth_user_id", data.user.id)
     .select("id")
@@ -101,7 +103,9 @@ export async function createAdminAccount(
   revalidateAdminPages();
   return {
     success: true,
-    message: "Administrador criado. A conta já pode entrar sem confirmar o e-mail.",
+    message: parsed.data.isOwner
+      ? "Proprietário criado. A conta já pode entrar sem confirmar o e-mail."
+      : "Administrador criado. A conta já pode entrar sem confirmar o e-mail.",
   };
 }
 
