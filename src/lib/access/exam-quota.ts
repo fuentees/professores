@@ -1,16 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { startOfCurrentMonthIso } from "@/lib/dates";
 
 /** Gerações/mês para professores sem assinatura ativa (sem "plano grátis" formal hoje). */
 export const FREE_TIER_EXAM_LIMIT = 3;
 
 export type ExamGenerationQuota = { limit: number | null; used: number };
-
-function startOfCurrentMonthIso(): string {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-}
 
 /**
  * Limite efetivo de provas geradas por mês para o professor: usa

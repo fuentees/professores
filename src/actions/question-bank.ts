@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
+import { getDownloadQuota, downloadQuotaExceeded, DOWNLOAD_QUOTA_MESSAGE } from "@/lib/access/download-quota";
 import type { BloomTaxonomyLevel, ContentDifficulty, QuestionType } from "@/types/supabase";
 import { getSearchTokens, toPostgrestSearchToken } from "@/lib/search";
 
@@ -308,6 +309,11 @@ export async function getQuestionOriginalUrl(id: string): Promise<{ error: strin
     accessType: question.access_type as ResourceAccessType,
   });
   if (!entitled) return { error: "Faça login para baixar o arquivo original." };
+
+  if (profile) {
+    const quota = await getDownloadQuota(admin, profile.id, profile.role);
+    if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
+  }
 
   const { data: signed, error } = await admin.storage
     .from("private")

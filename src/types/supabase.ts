@@ -504,6 +504,25 @@ export type Database = {
         Relationships: [];
       };
 
+      teacher_notes: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          author_id: string | null;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          author_id?: string | null;
+          body: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["teacher_notes"]["Insert"]>;
+        Relationships: [];
+      };
+
       questions: {
         Row: {
           id: string;

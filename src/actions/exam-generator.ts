@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { getExamGenerationQuota } from "@/lib/access/exam-quota";
+import { getDownloadQuota, downloadQuotaExceeded, DOWNLOAD_QUOTA_MESSAGE } from "@/lib/access/download-quota";
 import { examFiltersSchema, saveExamSchema } from "@/lib/validations/exam-generator";
 import type { QuestionType } from "@/types/supabase";
 
@@ -590,6 +591,7 @@ export async function loadSelectedQuestions(questionIds: string[]): Promise<Sele
   };
 }
 
+/** Chame antes de gerar o Word no navegador — é aqui que a cota do plano é checada. */
 export async function recordQuestionSelectionDownload(questionIds: string[]): Promise<{ error: string | null }> {
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para baixar as questões." };
@@ -605,6 +607,9 @@ export async function recordQuestionSelectionDownload(questionIds: string[]): Pr
     .maybeSingle();
   if (!first) return { error: "Questões não encontradas." };
 
+  const quota = await getDownloadQuota(admin, profile.id, profile.role);
+  if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
+
   const { error } = await admin.from("download_events").insert({
     teacher_id: profile.id,
     resource_type: "question",
@@ -619,6 +624,7 @@ export async function recordQuestionSelectionDownload(questionIds: string[]): Pr
   return { error: null };
 }
 
+/** Chame antes de gerar o Word no navegador — é aqui que a cota do plano é checada. */
 export async function recordExamDownload(examId: string): Promise<{ error: string | null }> {
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para baixar esta prova." };
@@ -634,6 +640,9 @@ export async function recordExamDownload(examId: string): Promise<{ error: strin
   if (!exam) return { error: "Prova não encontrada." };
 
   const admin = createAdminClient();
+  const quota = await getDownloadQuota(admin, profile.id, profile.role);
+  if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
+
   const { error } = await admin.from("download_events").insert({
     teacher_id: profile.id,
     resource_type: "exam",

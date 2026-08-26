@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { canAccessResource, type ResourceAccessType } from "@/lib/access/can-access-resource";
+import { getDownloadQuota, downloadQuotaExceeded, DOWNLOAD_QUOTA_MESSAGE } from "@/lib/access/download-quota";
 
 export type ActionResult = { error: string | null; url?: string };
 
@@ -66,6 +67,11 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
     };
   }
 
+  if (profile) {
+    const quota = await getDownloadQuota(admin, profile.id, profile.role);
+    if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
+  }
+
   const { data: signed, error } = await admin.storage
     .from("private")
     .createSignedUrl(file.storage_path, 60);
@@ -84,7 +90,12 @@ export async function getDownloadUrl(contentFileId: string): Promise<ActionResul
   return { error: null, url: signed.signedUrl };
 }
 
-/** Registra o Word gerado no próprio navegador para materiais sem anexo. */
+/**
+ * Autoriza (checa cota) e registra o Word gerado no próprio navegador para
+ * materiais sem anexo. O chamador deve aguardar `error: null` antes de
+ * gerar/salvar o arquivo — é essa checagem que faz o limite do plano valer
+ * pra downloads sem arquivo físico no storage.
+ */
 export async function recordGeneratedMaterialDownload(contentId: string): Promise<ActionResult> {
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para baixar este material." };
@@ -106,6 +117,9 @@ export async function recordGeneratedMaterialDownload(contentId: string): Promis
     { contentId },
   );
   if (!entitled) return { error: "Seu plano não permite baixar este material." };
+
+  const quota = await getDownloadQuota(admin, profile.id, profile.role);
+  if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
 
   const { error } = await admin.from("download_events").insert({
     teacher_id: profile.id,

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { hasSubscriberAccess } from "@/lib/access/subscriber-access";
+import { getDownloadQuota, downloadQuotaExceeded, DOWNLOAD_QUOTA_MESSAGE } from "@/lib/access/download-quota";
 
 export type ActionResult = { error: string | null; url?: string };
 
@@ -67,6 +68,9 @@ export async function getLessonFileDownloadUrl(lessonFileId: string): Promise<Ac
       return { error: "Este curso é exclusivo para assinantes de um plano pago." };
     }
   }
+
+  const quota = await getDownloadQuota(admin, profile.id, profile.role);
+  if (downloadQuotaExceeded(quota)) return { error: DOWNLOAD_QUOTA_MESSAGE(quota.limit!) };
 
   const { data: signed, error } = await admin.storage
     .from("private")

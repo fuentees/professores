@@ -39,11 +39,14 @@ export function ExamPrintView({
   async function handleDownloadWord() {
     setDownloading(true);
     try {
+      const authorization = await recordExamDownload(exam.id);
+      if (authorization.error) {
+        toast.error(authorization.error);
+        return;
+      }
       const { generateExamDocx, downloadBlob } = await import("@/lib/export/exam-docx");
       const blob = await generateExamDocx(exam, questions, printSettings);
       downloadBlob(blob, `${exam.title || "avaliacao"}.docx`);
-      const recorded = await recordExamDownload(exam.id);
-      if (recorded.error) toast.warning(recorded.error);
     } catch {
       toast.error("Não foi possível gerar o arquivo Word.");
     } finally {

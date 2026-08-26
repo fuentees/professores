@@ -21,16 +21,19 @@ export function MaterialExportButtons({
   async function handleDownload() {
     setDownloading(true);
     try {
+      if (trackDownload) {
+        const result = await recordGeneratedMaterialDownload(contentId);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+      }
       const [{ generateMaterialDocx, safeDocxFileName }, { downloadBlob }] = await Promise.all([
         import("@/lib/export/material-docx"),
         import("@/lib/export/exam-docx"),
       ]);
       const blob = await generateMaterialDocx(material);
       downloadBlob(blob, safeDocxFileName(material.title));
-      if (trackDownload) {
-        const result = await recordGeneratedMaterialDownload(contentId);
-        if (result.error) toast.warning(result.error);
-      }
     } catch {
       toast.error("Não foi possível gerar o arquivo Word.");
     } finally {

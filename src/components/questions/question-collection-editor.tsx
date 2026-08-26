@@ -63,6 +63,11 @@ export function QuestionCollectionEditor({ collection }: { collection: QuestionC
   async function handleDownload() {
     setDownloading(true);
     try {
+      const authorization = await recordQuestionSelectionDownload(questionIds);
+      if (authorization.error) {
+        toast.error(authorization.error);
+        return;
+      }
       const { generateExamDocx, downloadBlob } = await import("@/lib/export/exam-docx");
       const blob = await generateExamDocx(
         {
@@ -79,7 +84,6 @@ export function QuestionCollectionEditor({ collection }: { collection: QuestionC
         questions,
       );
       downloadBlob(blob, `${(name.trim() || "caderno-de-questoes").replace(/[^a-zA-Z0-9À-ÿ -]/g, "").trim()}.docx`);
-      await recordQuestionSelectionDownload(questionIds);
       toast.success("Caderno baixado em Word com gabarito.");
     } catch {
       toast.error("Não foi possível gerar o Word.");

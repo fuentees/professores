@@ -156,6 +156,11 @@ function QuestionSelectionTray() {
   async function handleDownload() {
     setDownloading(true);
     try {
+      const authorization = await recordQuestionSelectionDownload(selectedIds);
+      if (authorization.error) {
+        toast.error(authorization.error);
+        return;
+      }
       const result = await loadSelectedQuestions(selectedIds);
       if (result.error || !result.questions?.length) {
         toast.error(result.error ?? "Não foi possível preparar as questões.");
@@ -177,7 +182,6 @@ function QuestionSelectionTray() {
         result.questions,
       );
       downloadBlob(blob, `questoes-selecionadas-${selectedIds.length}.docx`);
-      await recordQuestionSelectionDownload(selectedIds);
       toast.success("Arquivo Word preparado com questões e gabarito.");
     } catch {
       toast.error("Não foi possível gerar o arquivo Word.");
