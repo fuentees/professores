@@ -56,6 +56,25 @@ export const examFiltersSchema = z
 
 export type ExamFiltersInput = z.infer<typeof examFiltersSchema>;
 
+// swapExamQuestion é uma Server Action chamável direto (bypassando a UI) —
+// sem validar aqui, gradeId/subjectId/themeId/excludeIds vão sem checagem
+// nenhuma até virarem string interpolada numa query PostgREST em
+// pickQuestionIds (exam-generator.ts). Exigir uuid() em cada campo garante
+// que só chegam lá caracteres inofensivos pro filtro .or()/.not(), fechando
+// o vetor de injeção — não é o professor autorizado a ver mais dados, é
+// impedir que a string do filtro seja reescrita.
+export const swapExamQuestionSchema = z.object({
+  excludeIds: z.array(z.uuid()),
+  difficulty: z.enum(["easy", "medium", "hard"]),
+  filters: z.object({
+    gradeId: z.uuid("Selecione a série."),
+    subjectId: z.uuid("Selecione a disciplina."),
+    themeId: z.uuid().optional().or(z.literal("")),
+    subthemeId: z.uuid().optional().or(z.literal("")),
+    questionTypes: z.array(z.enum(EXAM_QUESTION_TYPES)).min(1, "Selecione pelo menos um tipo de questão."),
+  }),
+});
+
 export const saveExamSchema = z.object({
   title: z.string().trim().min(3, "Informe um título para a prova."),
   gradeId: z.uuid().optional().or(z.literal("")),

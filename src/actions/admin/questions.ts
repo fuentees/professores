@@ -87,6 +87,27 @@ export async function updateQuestion(id: string, input: unknown): Promise<Action
   const supabase = await createClient();
   const data = parsed.data;
 
+  // Este formulário genérico só grava `status`, nunca `publication_status`
+  // — é o único jeito de completar uma questão importada (tema é
+  // obrigatório aqui, e a tela de revisão de importação não deixa
+  // atribuí-lo), mas não é o fluxo de aprovação. Sem essa checagem, ativar
+  // por aqui uma questão ainda em rascunho de importação (publication_
+  // status='draft') a deixava sorteável no gerador de provas sem nunca ter
+  // passado por "Aprovar" — conteúdo/gabarito não revisado indo pro aluno.
+  if (data.status === "active") {
+    const { data: current } = await supabase
+      .from("questions")
+      .select("publication_status")
+      .eq("id", id)
+      .maybeSingle();
+    if (current?.publication_status === "draft") {
+      return {
+        error:
+          "Esta questão ainda não foi aprovada na importação. Revise e aprove em Questões → Importações antes de ativá-la.",
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("questions")
     .update({

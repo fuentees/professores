@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfile } from "@/lib/auth/require-active-profile";
 import { getExamGenerationQuota } from "@/lib/access/exam-quota";
 import { getDownloadQuota, downloadQuotaExceeded, DOWNLOAD_QUOTA_MESSAGE } from "@/lib/access/download-quota";
-import { examFiltersSchema, saveExamSchema } from "@/lib/validations/exam-generator";
+import { examFiltersSchema, saveExamSchema, swapExamQuestionSchema } from "@/lib/validations/exam-generator";
 import type { QuestionType } from "@/types/supabase";
 
 export type ExamQuestion = {
@@ -105,6 +105,12 @@ async function pickQuestionIds(
     .select("id")
     .eq("difficulty", params.difficulty)
     .eq("status", "active")
+    // Sem isso, uma questão importada que um admin editou pelo formulário
+    // genérico (que só grava `status`, nunca `publication_status`) podia
+    // ficar com status=active + publication_status=draft — não revisada/
+    // aprovada — e ainda assim ser sorteada aqui pro professor. Mesma
+    // checagem já feita em loadSelectedQuestions/searchQuestions.
+    .eq("publication_status", "published")
     .in("question_type", params.types);
 
   // Duas eras de dado convivem em `questions`: cadastro manual (sempre com
@@ -347,21 +353,28 @@ export async function swapExamQuestion(
   const profile = await requireActiveProfile();
   if (!profile) return { error: "Faça login para gerar uma prova." };
 
+  // Chamável direto como Server Action (sem passar pela UI) — sem validar,
+  // esses campos iam sem checagem nenhuma até virar string interpolada na
+  // query de pickQuestionIds. Ver comentário em swapExamQuestionSchema.
+  const parsed = swapExamQuestionSchema.safeParse({ excludeIds, difficulty, filters });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Filtros inválidos." };
+  const validated = parsed.data;
+
   const admin = createAdminClient();
-  const types = filters.questionTypes;
-  const fallbackThemeIds = filters.themeId
+  const types = validated.filters.questionTypes;
+  const fallbackThemeIds = validated.filters.themeId
     ? undefined
-    : await resolveThemeIdsForSubjectGrade(admin, filters.subjectId, filters.gradeId);
+    : await resolveThemeIdsForSubjectGrade(admin, validated.filters.subjectId, validated.filters.gradeId);
   const ids = await pickQuestionIds(admin, {
-    gradeId: filters.gradeId,
-    subjectId: filters.subjectId,
-    themeId: filters.themeId,
-    subthemeId: filters.subthemeId,
+    gradeId: validated.filters.gradeId,
+    subjectId: validated.filters.subjectId,
+    themeId: validated.filters.themeId,
+    subthemeId: validated.filters.subthemeId,
     fallbackThemeIds,
-    difficulty,
+    difficulty: validated.difficulty,
     types,
     count: 1,
-    excludeIds,
+    excludeIds: validated.excludeIds,
   });
 
   if (ids.length === 0) {
@@ -396,7 +409,8 @@ export async function saveGeneratedExam(input: unknown): Promise<SaveExamResult>
     .from("questions")
     .select("id")
     .in("id", data.questionIds)
-    .eq("status", "active");
+    .eq("status", "active")
+    .eq("publication_status", "published");
   const validIds = new Set((validQuestions ?? []).map((q) => q.id));
   if (data.questionIds.some((id) => !validIds.has(id))) {
     return { error: "Uma ou mais questões não estão mais disponíveis. Gere a prévia novamente." };
@@ -436,7 +450,8 @@ export async function updateGeneratedExam(examId: string, input: unknown): Promi
     .from("questions")
     .select("id")
     .in("id", data.questionIds)
-    .eq("status", "active");
+    .eq("status", "active")
+    .eq("publication_status", "published");
   const validIds = new Set((validQuestions ?? []).map((q) => q.id));
   if (data.questionIds.some((id) => !validIds.has(id))) {
     return { error: "Uma ou mais questões não estão mais disponíveis. Gere a prévia novamente." };
