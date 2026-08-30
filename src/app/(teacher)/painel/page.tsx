@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ClipboardCheck, Download, GraduationCap, Heart, LayoutGrid, SquareStack } from "lucide-react";
+import {
+  BookOpenText,
+  ClipboardCheck,
+  Download,
+  GraduationCap,
+  Heart,
+  LayoutGrid,
+  SquareStack,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +15,7 @@ import { MaterialCard, type MaterialCardData } from "@/components/materials/mate
 import { SectionHeader } from "@/components/common/section-header";
 import { fetchContentCards } from "@/lib/queries/content-cards";
 import { isRecentlyCreated } from "@/lib/dates";
+import { TeacherActionCarousel } from "@/components/painel/teacher-action-carousel";
 import type { LucideIcon } from "lucide-react";
 
 type FeaturedRow = {
@@ -136,15 +145,87 @@ export default async function PainelPage() {
   const materials = featured;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold">Olá, {profile?.full_name || "professor(a)"}</h1>
         <p className="text-muted-foreground">
-          Aqui você acompanha novidades, materiais recentes e seus favoritos.
+          O que você precisa preparar hoje?
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <TeacherActionCarousel />
+
+      <section className="space-y-4" aria-labelledby="quick-actions-title">
+        <div>
+          <h2 id="quick-actions-title" className="text-lg font-semibold tracking-tight">
+            Acessos rápidos
+          </h2>
+          <p className="text-sm text-muted-foreground">Vá direto para as ferramentas mais usadas no planejamento.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {(
+            [
+              {
+                href: "/painel/banco-de-questoes",
+                label: "Banco de questões",
+                description: "Selecione questões e monte avaliações.",
+                icon: SquareStack,
+                tint: "bg-assessment-soft text-assessment",
+              },
+              {
+                href: "/materiais",
+                label: "Biblioteca de materiais",
+                description: "Encontre conteúdos por série e disciplina.",
+                icon: BookOpenText,
+                tint: "bg-primary/10 text-primary",
+              },
+              {
+                href: "/objetos",
+                label: "Recursos interativos",
+                description: "Abra jogos e simulações para a turma.",
+                icon: LayoutGrid,
+                tint: "bg-interactive-soft text-interactive",
+              },
+              {
+                href: "/painel/favoritos",
+                label: "Meus favoritos",
+                description: "Retome o que você já separou.",
+                icon: Heart,
+                tint: "bg-primary/10 text-primary",
+              },
+            ] satisfies {
+              href: string;
+              label: string;
+              description: string;
+              icon: LucideIcon;
+              tint: string;
+            }[]
+          ).map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group flex min-h-32 flex-col justify-between rounded-2xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
+            >
+              <span className={`flex size-10 items-center justify-center rounded-xl ${item.tint}`}>
+                <item.icon className="size-5" strokeWidth={1.75} aria-hidden />
+              </span>
+              <div className="mt-4">
+                <p className="font-semibold tracking-tight group-hover:text-primary">{item.label}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="activity-summary-title">
+        <div>
+          <h2 id="activity-summary-title" className="text-lg font-semibold tracking-tight">
+            Sua atividade
+          </h2>
+          <p className="text-sm text-muted-foreground">Um resumo do que você já organizou na plataforma.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {(
           [
             { label: "Materiais favoritados", value: favoritesCount ?? 0, icon: Heart, tint: "text-primary bg-primary/10" },
@@ -170,34 +251,8 @@ export default async function PainelPage() {
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/painel/banco-de-questoes"
-          className="group flex items-center gap-4 rounded-lg border p-5 transition-shadow hover:shadow-md"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-assessment-soft text-assessment">
-            <SquareStack className="h-6 w-6" strokeWidth={1.5} />
-          </div>
-          <div>
-            <p className="font-semibold tracking-tight group-hover:underline">Banco de questões</p>
-            <p className="text-sm text-muted-foreground">Monte avaliações com questões prontas por habilidade BNCC.</p>
-          </div>
-        </Link>
-        <Link
-          href="/objetos"
-          className="group flex items-center gap-4 rounded-lg border p-5 transition-shadow hover:shadow-md"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-interactive-soft text-interactive">
-            <LayoutGrid className="h-6 w-6" strokeWidth={1.5} />
-          </div>
-          <div>
-            <p className="font-semibold tracking-tight group-hover:underline">Recursos interativos</p>
-            <p className="text-sm text-muted-foreground">Jogos e simulações prontos para usar em aula.</p>
-          </div>
-        </Link>
-      </div>
+        </div>
+      </section>
 
       {recommendations.length > 0 && (
         <div className="space-y-4">
