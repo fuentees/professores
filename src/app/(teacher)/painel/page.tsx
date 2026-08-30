@@ -143,17 +143,12 @@ export default async function PainelPage() {
   ).size;
 
   const materials = featured;
+  const teacherName = profile?.full_name?.trim().split(/\s+/)[0] || "professor(a)";
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Olá, {profile?.full_name || "professor(a)"}</h1>
-        <p className="text-muted-foreground">
-          O que você precisa preparar hoje?
-        </p>
-      </div>
-
-      <TeacherActionCarousel />
+      <h1 className="sr-only">Painel do professor</h1>
+      <TeacherActionCarousel teacherName={teacherName} />
 
       <section className="space-y-4" aria-labelledby="quick-actions-title">
         <div>

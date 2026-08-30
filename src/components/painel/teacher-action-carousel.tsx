@@ -57,7 +57,7 @@ const ACTION_SLIDES: ActionSlide[] = [
   },
 ];
 
-export function TeacherActionCarousel() {
+export function TeacherActionCarousel({ teacherName }: { teacherName: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const currentSlide = ACTION_SLIDES[currentIndex];
   const CurrentIcon = currentSlide.icon;
@@ -125,7 +125,12 @@ export function TeacherActionCarousel() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[27rem] max-w-3xl flex-col items-center px-5 pb-32 pt-8 text-center sm:px-8 md:min-h-[21rem] md:justify-center md:px-44 md:py-9 lg:px-48 xl:px-40">
+      <div className="relative z-10 mx-auto flex min-h-[29rem] max-w-3xl flex-col items-center px-5 pb-32 pt-8 text-center sm:px-8 md:min-h-[22rem] md:justify-center md:px-44 md:py-8 lg:px-48 xl:px-40">
+        <p className="mb-4 text-sm font-medium text-white/80">
+          Olá, <strong className="font-semibold text-white">{teacherName}</strong>{" "}
+          <span aria-hidden>👋</span>
+          <span className="ml-1.5 text-white/60">O que você precisa preparar hoje?</span>
+        </p>
         <div key={currentIndex} className="flex flex-col items-center" aria-live="polite">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[0.68rem] font-bold tracking-[0.16em] text-orange-100 backdrop-blur">
             <CurrentIcon className="size-3.5" aria-hidden />
