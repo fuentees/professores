@@ -1,8 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   BookMarked,
-  BookOpenCheck,
   ChevronRight,
   ClipboardCheck,
   GraduationCap,
@@ -10,7 +10,6 @@ import {
   LayoutGrid,
   RotateCcw,
   Search,
-  Shapes,
   Target,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -147,28 +146,39 @@ export default async function HomePage() {
           )}
           </div>
 
-          <div className="relative hidden min-h-[430px] lg:block" aria-hidden>
-            <div className="absolute inset-8 rotate-3 rounded-[2.5rem] bg-primary/10" />
-            <div className="absolute inset-x-12 top-5 rounded-3xl border bg-card p-5 shadow-2xl shadow-primary/10">
-              <div className="flex items-center gap-3 border-b pb-4">
-                <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><BookOpenCheck className="size-5" /></span>
-                <div><p className="text-xs font-medium text-primary">PLANO DE AULA</p><p className="font-semibold">Aprendizagem que faz sentido</p></div>
+          <div className="relative mx-auto w-full max-w-[34rem] lg:min-h-[31rem]" aria-label="Equipe pedagógica">
+            <div className="absolute -inset-3 rotate-2 rounded-[2.5rem] bg-primary/10 sm:-inset-5" aria-hidden />
+            <div className="absolute -right-4 -top-5 size-28 rounded-full border border-primary/15 bg-assessment-soft/80 blur-[1px] sm:-right-8 sm:size-36" aria-hidden />
+
+            <div className="relative overflow-hidden rounded-[2rem] border border-primary/15 bg-[#f7eee5] shadow-2xl shadow-primary/15">
+              <Image
+                src="/brand/equipe-pedagogica.jpeg"
+                alt="Ilustração de duas educadoras que representam a curadoria pedagógica da plataforma"
+                width={1400}
+                height={1122}
+                sizes="(max-width: 1023px) calc(100vw - 2rem), 34rem"
+                preload
+                className="aspect-[5/4] w-full object-cover object-center"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-[#172b4d]/90 via-[#172b4d]/35 to-transparent" aria-hidden />
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">
+                  Curadoria pedagógica
+                </p>
+                <p className="mt-1 max-w-md text-xl font-semibold leading-tight sm:text-2xl">
+                  Conteúdo criado por quem vive a sala de aula.
+                </p>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <div className="h-24 rounded-2xl bg-assessment-soft" />
-                <div className="h-24 rounded-2xl bg-bncc-soft" />
-                <div className="h-24 rounded-2xl bg-interactive-soft" />
+            </div>
+
+            <div className="absolute -bottom-4 -left-2 flex items-center gap-3 rounded-2xl border border-primary/15 bg-card/95 px-4 py-3 shadow-xl backdrop-blur sm:-left-6 sm:px-5" aria-hidden>
+              <span className="flex size-10 items-center justify-center rounded-xl bg-bncc-soft text-bncc">
+                <BookMarked className="size-5" />
+              </span>
+              <div>
+                <p className="text-xs text-muted-foreground">Planejamento confiável</p>
+                <p className="text-sm font-semibold">Pronto para ensinar</p>
               </div>
-              <div className="mt-4 h-2.5 w-4/5 rounded-full bg-muted" />
-              <div className="mt-2 h-2.5 w-3/5 rounded-full bg-muted" />
-            </div>
-            <div className="absolute bottom-8 left-0 flex w-52 -rotate-3 items-center gap-3 rounded-2xl border bg-card p-4 shadow-xl">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-interactive-soft text-interactive"><Shapes className="size-5" /></span>
-              <div><p className="text-xs text-muted-foreground">Recurso interativo</p><p className="text-sm font-semibold">Pronto para jogar</p></div>
-            </div>
-            <div className="absolute right-0 bottom-1 flex w-52 rotate-2 items-center gap-3 rounded-2xl border bg-card p-4 shadow-xl">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-bncc-soft text-bncc"><BookMarked className="size-5" /></span>
-              <div><p className="text-xs text-muted-foreground">Alinhamento</p><p className="text-sm font-semibold">Habilidades BNCC</p></div>
             </div>
           </div>
         </div>
