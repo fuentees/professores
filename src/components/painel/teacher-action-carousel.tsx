@@ -5,10 +5,10 @@ import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
+  CalendarRange,
   ClipboardCheck,
   Heart,
   LayoutGrid,
-  Search,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -25,11 +25,11 @@ type ActionSlide = {
 const ACTION_SLIDES: ActionSlide[] = [
   {
     eyebrow: "COMECE POR AQUI",
-    title: "Encontre o material certo para a próxima aula",
-    description: "Pesquise por tema, disciplina, ano e tipo de material em poucos passos.",
-    href: "/buscar",
-    cta: "Buscar materiais",
-    icon: Search,
+    title: "Planeje sua próxima aula em poucos minutos",
+    description: "Crie um plano completo, alinhado à BNCC e adaptado à realidade da sua turma.",
+    href: "/painel/planejamento",
+    cta: "Começar a planejar",
+    icon: CalendarRange,
   },
   {
     eyebrow: "AVALIE COM PRATICIDADE",

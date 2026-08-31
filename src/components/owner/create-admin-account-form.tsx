@@ -20,7 +20,7 @@ export function CreateAdminAccountForm() {
     if (!state?.success) return;
     toast.success(state.message);
     formRef.current?.reset();
-    setIsOwner(false);
+    queueMicrotask(() => setIsOwner(false));
     router.refresh();
   }, [router, state]);
 

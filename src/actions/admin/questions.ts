@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAdmin, NotAdminError } from "@/lib/auth/require-admin";
 import { questionSchema } from "@/lib/validations/question";
+import { recordQuestionImportEvent } from "@/lib/audit/question-import";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActionResult = { error: string | null; id?: string };
 
@@ -83,6 +85,7 @@ export async function updateQuestion(id: string, input: unknown): Promise<Action
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const guard = await guardAdmin();
   if (guard) return guard;
+  const actor = await requireAdmin();
 
   const supabase = await createClient();
   const data = parsed.data;
@@ -94,12 +97,12 @@ export async function updateQuestion(id: string, input: unknown): Promise<Action
   // por aqui uma questão ainda em rascunho de importação (publication_
   // status='draft') a deixava sorteável no gerador de provas sem nunca ter
   // passado por "Aprovar" — conteúdo/gabarito não revisado indo pro aluno.
+  const { data: current } = await supabase
+    .from("questions")
+    .select("publication_status, import_id")
+    .eq("id", id)
+    .maybeSingle();
   if (data.status === "active") {
-    const { data: current } = await supabase
-      .from("questions")
-      .select("publication_status")
-      .eq("id", id)
-      .maybeSingle();
     if (current?.publication_status === "draft") {
       return {
         error:
@@ -124,6 +127,15 @@ export async function updateQuestion(id: string, input: unknown): Promise<Action
   if (error) return { error: error.message };
 
   await syncAlternatives(id, data.questionType === "multiple_choice" ? data.alternatives : []);
+
+  if (current?.import_id) {
+    await recordQuestionImportEvent(createAdminClient(), {
+      importId: current.import_id,
+      actorId: actor.id,
+      action: "question_fields_updated",
+      details: { questionId: id },
+    });
+  }
 
   revalidatePath(LIST_PATH);
   revalidatePath(`/admin/questoes/${id}/editar`);

@@ -8,12 +8,16 @@ import { validateDocxFile } from "@/lib/storage/file-validation";
 import { questionAssetStoragePath, questionOriginalStoragePath } from "@/lib/storage/paths";
 import { parseQuestionDocx } from "@/lib/parsing/docx";
 import type { ParsedQuestionDraft, ParsedWarning } from "@/lib/parsing/docx/types";
+import { syncBnccFromWordImport } from "@/lib/bncc/sync-word-import";
+import { getBnccTaxonomyTarget } from "@/lib/bncc/code";
+import { recordQuestionImportEvent } from "@/lib/audit/question-import";
 import type { BloomTaxonomyLevel } from "@/types/supabase";
 
 export type ImportResult = {
   error: string | null;
   importId?: string;
   questionId?: string;
+  summary?: { warnings: number; errors: number; bnccFound: number; bnccLinked: number };
 };
 
 const LIST_PATH = "/admin/questoes";
@@ -35,7 +39,7 @@ function sha256(buffer: ArrayBuffer): string {
 
 /**
  * Resolve nomes extraídos do .docx contra as tabelas de taxonomia já
- * existentes (grades/subjects/academic_periods/bncc_skills). Nunca cria
+ * existentes (grades/subjects/academic_periods). Nunca cria
  * entidade nova nem "adivinha" o mais parecido — só casa exato
  * (case/acento-insensível) e, quando não encontra, devolve null + deixa a
  * chamadora decidir se isso vira aviso.
@@ -51,13 +55,10 @@ async function resolveTaxonomy(
       .normalize("NFD")
       .replace(/\p{Diacritic}/gu, "");
 
-  const [{ data: subjects }, { data: grades }, { data: periods }, { data: bnccSkills }] = await Promise.all([
+  const [{ data: subjects }, { data: grades }, { data: periods }] = await Promise.all([
     admin.from("subjects").select("id, name"),
     admin.from("grades").select("id, name"),
     admin.from("academic_periods").select("id, name"),
-    draft.bnccCodes.length > 0
-      ? admin.from("bncc_skills").select("id, code").in("code", draft.bnccCodes)
-      : Promise.resolve({ data: [] as { id: string; code: string }[] }),
   ]);
 
   const subjectId = draft.subjectName.value
@@ -70,12 +71,7 @@ async function resolveTaxonomy(
     ? (periods ?? []).find((p) => normalize(draft.academicPeriodRaw.value!).includes(normalize(p.name)))?.id ?? null
     : null;
 
-  const matchedBnccIds = (bnccSkills ?? []).map((s) => s.id);
-  const missingBnccCodes = draft.bnccCodes.filter(
-    (code) => !(bnccSkills ?? []).some((s) => s.code === code),
-  );
-
-  return { subjectId, gradeId, academicPeriodId, matchedBnccIds, missingBnccCodes };
+  return { subjectId, gradeId, academicPeriodId };
 }
 
 function buildWarnings(
@@ -94,7 +90,15 @@ function buildWarnings(
 export async function importQuestionDocx(file: File): Promise<ImportResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
+  const actor = await requireAdmin();
+  return processQuestionDocx(file, actor.id);
+}
 
+async function processQuestionDocx(
+  file: File,
+  actorId: string,
+  reprocessedFromId: string | null = null,
+): Promise<ImportResult> {
   const validationError = await validateDocxFile(file);
   if (validationError) return { error: validationError };
 
@@ -124,10 +128,18 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     file_hash: fileHash,
     storage_path: storagePath,
     status: "processing",
+    imported_by: actorId,
+    reprocessed_from_id: reprocessedFromId,
   });
   if (importInsertError) {
     return { error: `Não foi possível registrar a importação: ${importInsertError.message}` };
   }
+  await recordQuestionImportEvent(admin, {
+    importId,
+    actorId,
+    action: reprocessedFromId ? "reprocess_started" : "uploaded",
+    details: { fileName: file.name, reprocessedFromId },
+  });
 
   let parsed: Awaited<ReturnType<typeof parseQuestionDocx>>;
   try {
@@ -138,6 +150,12 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
       .from("question_imports")
       .update({ status: "failed", error_message: message, processed_at: new Date().toISOString() })
       .eq("id", importId);
+    await recordQuestionImportEvent(admin, {
+      importId,
+      actorId,
+      action: "processing_failed",
+      details: { message },
+    });
     return { error: null, importId };
   }
 
@@ -178,17 +196,34 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     }
   }
 
-  const { subjectId, gradeId, academicPeriodId, matchedBnccIds, missingBnccCodes } = await resolveTaxonomy(
-    admin,
-    draft,
-  );
-  for (const code of missingBnccCodes) {
+  const { subjectId, gradeId, academicPeriodId } = await resolveTaxonomy(admin, draft);
+  if (draft.subjectName.value && !subjectId) {
     extraWarnings.push({
-      severity: "warning",
-      field: "bncc",
-      message: `Habilidade BNCC ${code} não encontrada no cadastro. Revisão necessária.`,
+      severity: "error",
+      field: "subject",
+      message: `A disciplina "${draft.subjectName.value}" não existe no cadastro. Corrija o Word e reprocesse.`,
     });
   }
+  if (draft.gradeName.value && !gradeId) {
+    extraWarnings.push({
+      severity: "error",
+      field: "grade",
+      message: `A série "${draft.gradeName.value}" não existe no cadastro. Corrija o Word e reprocesse.`,
+    });
+  }
+  if (!draft.leadingText.trim()) {
+    extraWarnings.push({ severity: "error", field: "statement", message: "O enunciado não foi identificado." });
+  }
+  if (!draft.correctionProse && draft.answers.length === 0 && draft.rubrics.length === 0) {
+    extraWarnings.push({
+      severity: "error",
+      field: "correction",
+      message: "O arquivo não possui gabarito, resposta esperada ou orientação de correção identificável.",
+    });
+  }
+  validateBnccPedagogicalConsistency(draft, extraWarnings);
+  const bnccSync = await syncBnccFromWordImport(admin, { importId, gradeId, draft });
+  extraWarnings.push(...bnccSync.warnings);
   if (draft.curriculumUnitName.value) {
     extraWarnings.push({
       severity: "warning",
@@ -285,6 +320,12 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     field: w.field,
     message: w.message,
   }));
+  const summary = {
+    warnings: warningRows.filter((warning) => warning.severity === "warning").length,
+    errors: warningRows.filter((warning) => warning.severity === "error").length,
+    bnccFound: draft.bnccSkills.length,
+    bnccLinked: bnccSync.skillIds.length,
+  };
 
   // import_question_draft insere questão + partes + respostas + rubrica +
   // habilidades BNCC + assets + blocos + avisos numa única transação —
@@ -311,7 +352,7 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
     p_bloom_justification: draft.bloomJustification.value,
     p_pedagogical_note: draft.pedagogicalNote.value,
     p_original_file_path: storagePath,
-    p_bncc_skill_ids: matchedBnccIds.length > 0 ? matchedBnccIds : null,
+    p_bncc_skill_ids: bnccSync.skillIds.length > 0 ? bnccSync.skillIds : null,
     p_parts: parts,
     p_answers: answers,
     p_rubrics: rubrics,
@@ -328,17 +369,85 @@ export async function importQuestionDocx(file: File): Promise<ImportResult> {
       .from("question_imports")
       .update({ status: "failed", error_message: rpcError.message, processed_at: new Date().toISOString() })
       .eq("id", importId);
+    await recordQuestionImportEvent(admin, {
+      importId,
+      actorId,
+      action: "processing_failed",
+      details: { message: rpcError.message },
+    });
     return { error: null, importId };
   }
+
+  await admin.from("question_imports").update({ summary }).eq("id", importId);
+  await recordQuestionImportEvent(admin, {
+    importId,
+    actorId,
+    action: "processed",
+    details: { questionId, ...summary },
+  });
 
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/importacoes`);
 
-  return { error: null, importId, questionId };
+  return { error: null, importId, questionId, summary };
 }
 
 function normalizeCode(code: string): string {
   return code.toLowerCase().replace(/[\s_-]+/g, "");
+}
+
+function normalizePedagogicalName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function sameComponent(subjectName: string, componentName: string) {
+  const subject = normalizePedagogicalName(subjectName);
+  const component = normalizePedagogicalName(componentName);
+  if (subject === component || subject.includes(component) || component.includes(subject)) return true;
+  const aliases: Record<string, string[]> = {
+    portugues: ["linguaportuguesa"],
+    linguaportuguesa: ["portugues"],
+    artes: ["arte"],
+    ciencias: ["cienciasdanatureza"],
+    ingles: ["linguainglesa"],
+  };
+  return (aliases[subject] ?? []).includes(component);
+}
+
+function validateBnccPedagogicalConsistency(draft: ParsedQuestionDraft, warnings: ParsedWarning[]) {
+  if (draft.bnccSkills.length === 0) {
+    warnings.push({
+      severity: "warning",
+      field: "bncc",
+      message: "Nenhuma habilidade BNCC foi encontrada no arquivo.",
+    });
+    return;
+  }
+
+  for (const skill of draft.bnccSkills) {
+    const target = getBnccTaxonomyTarget(skill.code);
+    if (target && draft.subjectName.value && !sameComponent(draft.subjectName.value, target.componentName)) {
+      warnings.push({
+        severity: "error",
+        field: "bncc",
+        message: `${skill.code} pertence a ${target.componentName}, mas o Word informa ${draft.subjectName.value}.`,
+      });
+    }
+
+    const exactFundamentalYear = skill.code.match(/^EF(0[1-9])/i)?.[1];
+    const wordYear = draft.gradeName.value?.match(/\b([1-9])\s*[º°o]?\s*ano\b/i)?.[1];
+    if (exactFundamentalYear && wordYear && Number(exactFundamentalYear) !== Number(wordYear)) {
+      warnings.push({
+        severity: "error",
+        field: "bncc",
+        message: `${skill.code} é do ${Number(exactFundamentalYear)}º ano, mas o Word informa ${draft.gradeName.value}.`,
+      });
+    }
+  }
 }
 
 /**
@@ -349,15 +458,36 @@ function normalizeCode(code: string): string {
 export async function approveQuestionImport(importId: string): Promise<ImportResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
-
   const admin = createAdminClient();
+  const actor = await requireAdmin();
+  const result = await approveOneImport(admin, actor.id, importId);
+  revalidateImportPaths();
+  return result;
+}
+
+async function approveOneImport(
+  admin: ReturnType<typeof createAdminClient>,
+  actorId: string,
+  importId: string,
+): Promise<ImportResult> {
   const { data: importRow } = await admin
     .from("question_imports")
-    .select("question_id")
+    .select("question_id, status")
     .eq("id", importId)
     .maybeSingle();
 
   if (!importRow?.question_id) return { error: "Importação sem questão associada." };
+  if (importRow.status === "approved") return { error: null, importId, questionId: importRow.question_id };
+  if (importRow.status !== "needs_review") return { error: "Esta importação não está disponível para aprovação." };
+
+  const { count: blockingErrors } = await admin
+    .from("question_import_warnings")
+    .select("id", { count: "exact", head: true })
+    .eq("import_id", importId)
+    .eq("severity", "error");
+  if ((blockingErrors ?? 0) > 0) {
+    return { error: "Corrija os erros graves e reprocesse o Word antes de aprovar." };
+  }
 
   const { error: questionError } = await admin
     .from("questions")
@@ -365,15 +495,70 @@ export async function approveQuestionImport(importId: string): Promise<ImportRes
     .eq("id", importRow.question_id);
   if (questionError) return { error: questionError.message };
 
+  // Aprovar a questão também valida as habilidades novas que o Word trouxe.
+  // Uma habilidade manualmente inativada não é afetada, pois só entram aqui
+  // as que ainda estão marcadas como pendentes de revisão.
+  const { data: bnccLinks } = await admin
+    .from("question_bncc_skills")
+    .select("bncc_skill_id")
+    .eq("question_id", importRow.question_id);
+  const linkedSkillIds = [...new Set((bnccLinks ?? []).map((link) => link.bncc_skill_id))];
+  if (linkedSkillIds.length > 0) {
+    const { error: bnccError } = await admin
+      .from("bncc_skills")
+      .update({ status: "active", verification_status: "verified" })
+      .in("id", linkedSkillIds)
+      .eq("verification_status", "pending");
+    if (bnccError) return { error: `A questão foi publicada, mas a BNCC não pôde ser ativada: ${bnccError.message}` };
+  }
+
   const { error: importError } = await admin
     .from("question_imports")
-    .update({ status: "approved" })
+    .update({ status: "approved", reviewed_by: actorId, reviewed_at: new Date().toISOString() })
     .eq("id", importId);
   if (importError) return { error: importError.message };
+  await recordQuestionImportEvent(admin, {
+    importId,
+    actorId,
+    action: "approved",
+    details: { questionId: importRow.question_id },
+  });
+  return { error: null, importId, questionId: importRow.question_id };
+}
 
+export async function approveQuestionImports(
+  importIds: string[],
+): Promise<{ error: string | null; approved: number; failed: { id: string; message: string }[] }> {
+  const guard = await guardAdmin();
+  if (guard) return { error: guard.error, approved: 0, failed: [] };
+  const actor = await requireAdmin();
+  const admin = createAdminClient();
+  const ids = [...new Set(importIds)].filter((id) => /^[0-9a-f-]{36}$/i.test(id)).slice(0, 100);
+  if (ids.length === 0) return { error: "Selecione pelo menos uma importação pronta.", approved: 0, failed: [] };
+
+  let approved = 0;
+  const failed: { id: string; message: string }[] = [];
+  for (const id of ids) {
+    const result = await approveOneImport(admin, actor.id, id);
+    if (result.error) failed.push({ id, message: result.error });
+    else approved++;
+  }
+  await recordQuestionImportEvent(admin, {
+    importId: null,
+    actorId: actor.id,
+    action: "bulk_approval",
+    details: { requested: ids.length, approved, failed: failed.length },
+  });
+  revalidateImportPaths();
+  return { error: null, approved, failed };
+}
+
+function revalidateImportPaths() {
   revalidatePath(LIST_PATH);
   revalidatePath(`${LIST_PATH}/importacoes`);
-  return { error: null, importId, questionId: importRow.question_id };
+  revalidatePath(`${LIST_PATH}/cobertura`);
+  revalidatePath("/admin/bncc");
+  revalidatePath("/bncc");
 }
 
 /**
@@ -384,32 +569,141 @@ export async function approveQuestionImport(importId: string): Promise<ImportRes
 export async function rejectQuestionImport(importId: string): Promise<ImportResult> {
   const guard = await guardAdmin();
   if (guard) return guard;
-
+  const actor = await requireAdmin();
   const admin = createAdminClient();
   const { data: importRow } = await admin
     .from("question_imports")
-    .select("question_id")
+    .select("question_id, status")
     .eq("id", importId)
     .maybeSingle();
+  if (!importRow) return { error: "Importação não encontrada." };
+  if (importRow.status === "approved" || importRow.status === "superseded") {
+    return { error: "Uma importação aprovada ou substituída não pode ser rejeitada." };
+  }
 
   if (importRow?.question_id) {
-    const { data: assets } = await admin
-      .from("question_assets")
-      .select("storage_path")
-      .eq("question_id", importRow.question_id);
-    if (assets && assets.length > 0) {
-      await admin.storage.from("private").remove(assets.map((a) => a.storage_path));
-    }
-    await admin.from("questions").delete().eq("id", importRow.question_id);
+    await deleteImportedDraft(admin, importRow.question_id);
   }
 
   const { error } = await admin
     .from("question_imports")
-    .update({ status: "rejected", question_id: null })
+    .update({
+      status: "rejected",
+      question_id: null,
+      reviewed_by: actor.id,
+      reviewed_at: new Date().toISOString(),
+    })
     .eq("id", importId);
   if (error) return { error: error.message };
+  await recordQuestionImportEvent(admin, { importId, actorId: actor.id, action: "rejected" });
 
-  revalidatePath(LIST_PATH);
-  revalidatePath(`${LIST_PATH}/importacoes`);
+  revalidateImportPaths();
   return { error: null, importId };
+}
+
+async function deleteImportedDraft(admin: ReturnType<typeof createAdminClient>, questionId: string) {
+  const { data: assets } = await admin
+    .from("question_assets")
+    .select("storage_path")
+    .eq("question_id", questionId);
+  if (assets && assets.length > 0) {
+    await admin.storage.from("private").remove(assets.map((asset) => asset.storage_path));
+  }
+  await admin.from("questions").delete().eq("id", questionId);
+}
+
+export async function reprocessQuestionImport(importId: string, file: File): Promise<ImportResult> {
+  const guard = await guardAdmin();
+  if (guard) return guard;
+  const actor = await requireAdmin();
+  const admin = createAdminClient();
+  const { data: previous } = await admin
+    .from("question_imports")
+    .select("id, status, question_id")
+    .eq("id", importId)
+    .maybeSingle();
+  if (!previous) return { error: "Importação não encontrada." };
+  if (previous.status === "approved" || previous.status === "superseded") {
+    return { error: "Conteúdo aprovado não pode ser substituído por reprocessamento." };
+  }
+
+  const result = await processQuestionDocx(file, actor.id, importId);
+  if (result.error || !result.questionId || !result.importId) return result;
+
+  if (previous.question_id) await deleteImportedDraft(admin, previous.question_id);
+  const now = new Date().toISOString();
+  await admin
+    .from("question_imports")
+    .update({
+      status: "superseded",
+      question_id: null,
+      replaced_by_id: result.importId,
+      reviewed_by: actor.id,
+      reviewed_at: now,
+    })
+    .eq("id", importId);
+  await recordQuestionImportEvent(admin, {
+    importId,
+    actorId: actor.id,
+    action: "superseded",
+    details: { replacementImportId: result.importId },
+  });
+  revalidateImportPaths();
+  return result;
+}
+
+export async function resolveBnccImportConflict(
+  importId: string,
+  code: string,
+  choice: "catalog" | "word",
+): Promise<{ error: string | null }> {
+  const guard = await guardAdmin();
+  if (guard) return { error: guard.error };
+  const actor = await requireAdmin();
+  const admin = createAdminClient();
+  const normalizedCode = code.trim().toUpperCase();
+  if (!/^(?:EI|EF|EM)[A-Z0-9]{6,10}$/.test(normalizedCode)) return { error: "Código BNCC inválido." };
+
+  const { data: snapshot } = await admin
+    .from("question_import_bncc_snapshots")
+    .select("bncc_skill_id, imported_description, catalog_description, resolution")
+    .eq("import_id", importId)
+    .eq("code", normalizedCode)
+    .maybeSingle();
+  if (!snapshot?.bncc_skill_id || snapshot.resolution !== "conflict") {
+    return { error: "Esta divergência não está mais pendente." };
+  }
+
+  let chosenDescription = snapshot.catalog_description;
+  if (choice === "word") {
+    if (!snapshot.imported_description) return { error: "O Word não possui uma descrição válida." };
+    chosenDescription = snapshot.imported_description;
+    const { error } = await admin
+      .from("bncc_skills")
+      .update({ description: chosenDescription, verification_status: "verified" })
+      .eq("id", snapshot.bncc_skill_id);
+    if (error) return { error: error.message };
+  }
+
+  await admin
+    .from("question_import_bncc_snapshots")
+    .update({ catalog_description: chosenDescription, resolution: "matched" })
+    .eq("import_id", importId)
+    .eq("code", normalizedCode);
+  await admin
+    .from("question_import_warnings")
+    .delete()
+    .eq("import_id", importId)
+    .eq("field", "bncc")
+    .ilike("message", `%${normalizedCode}%difere%`);
+  await recordQuestionImportEvent(admin, {
+    importId,
+    actorId: actor.id,
+    action: "bncc_conflict_resolved",
+    details: { code: normalizedCode, choice },
+  });
+  revalidatePath(`${LIST_PATH}/importacoes/${importId}`);
+  revalidatePath("/admin/bncc");
+  revalidatePath("/bncc");
+  return { error: null };
 }

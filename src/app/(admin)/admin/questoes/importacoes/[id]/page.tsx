@@ -12,6 +12,8 @@ import {
 import { ImportReviewActions } from "@/components/admin/import-review-actions";
 import { fetchQuestionDocumentBlocks } from "@/lib/queries/question-document-blocks";
 import { QuestionDocumentRenderer } from "@/components/questions/question-document-renderer";
+import { ReprocessQuestionImport } from "@/components/admin/reprocess-question-import";
+import { BnccConflictResolution } from "@/components/admin/bncc-conflict-resolution";
 
 type ImportDetail = {
   id: string;
@@ -48,7 +50,15 @@ type QuestionDetail = {
     order_index: number;
   }[];
   question_assets: { id: string; storage_path: string; original_name: string }[];
-  question_bncc_skills: { bncc_skills: { code: string; description: string } | null }[];
+  question_bncc_skills: {
+    bncc_skills: {
+      code: string;
+      description: string;
+      status: "active" | "inactive";
+      source_type: "manual" | "word_import";
+      verification_status: "pending" | "verified";
+    } | null;
+  }[];
 };
 
 type ExistingQuestionSummary = {
@@ -60,6 +70,34 @@ type ExistingQuestionSummary = {
   subjects: { name: string } | null;
   grades: { name: string } | null;
   question_parts: { id: string }[];
+};
+
+type BnccSnapshot = {
+  code: string;
+  imported_description: string | null;
+  catalog_description: string | null;
+  resolution: "matched" | "new" | "conflict" | "unmapped" | "missing_description";
+};
+
+type ImportEvent = {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  details: Record<string, unknown>;
+  created_at: string;
+};
+
+const EVENT_LABELS: Record<string, string> = {
+  uploaded: "Arquivo enviado",
+  reprocess_started: "Reprocessamento iniciado",
+  processed: "Arquivo analisado",
+  processing_failed: "Falha no processamento",
+  approved: "Importação aprovada",
+  rejected: "Importação rejeitada",
+  superseded: "Importação substituída",
+  bncc_conflict_resolved: "Divergência BNCC resolvida",
+  question_fields_updated: "Campos da questão alterados",
+  bncc_skill_updated: "Habilidade BNCC alterada",
 };
 
 export default async function ImportReviewPage({
@@ -77,7 +115,7 @@ export default async function ImportReviewPage({
 
   if (!importRow) notFound();
 
-  const [{ data: warnings }, { data: question }] = await Promise.all([
+  const [{ data: warnings }, { data: question }, { data: bnccSnapshots }, { data: events }] = await Promise.all([
     supabase
       .from("question_import_warnings")
       .select("severity, field, message")
@@ -94,13 +132,31 @@ export default async function ImportReviewPage({
             question_answers(question_part_id, expected_answer, correction_guidance),
             question_rubrics(question_part_id, level, points, criteria, order_index),
             question_assets(id, storage_path, original_name),
-            question_bncc_skills(bncc_skills(code, description))`,
+            question_bncc_skills(bncc_skills(code, description, status, source_type, verification_status))`,
           )
           .eq("id", importRow.question_id)
           .maybeSingle()
           .returns<QuestionDetail>()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("question_import_bncc_snapshots")
+      .select("code, imported_description, catalog_description, resolution")
+      .eq("import_id", id)
+      .order("code")
+      .returns<BnccSnapshot[]>(),
+    supabase
+      .from("question_import_events")
+      .select("id, actor_id, action, details, created_at")
+      .eq("import_id", id)
+      .order("created_at", { ascending: false })
+      .returns<ImportEvent[]>(),
   ]);
+
+  const actorIds = [...new Set((events ?? []).flatMap((event) => event.actor_id ? [event.actor_id] : []))];
+  const { data: actors } = actorIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", actorIds)
+    : { data: [] as { id: string; full_name: string }[] };
+  const actorNameById = new Map((actors ?? []).map((actor) => [actor.id, actor.full_name]));
 
   let originalUrl: string | null = null;
   if (question?.original_file_path) {
@@ -158,9 +214,15 @@ export default async function ImportReviewPage({
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             {warnings.map((w, i) => (
-              <p key={i} className="text-sm text-amber-700">
-                ⚠ {w.message}
-              </p>
+              <div
+                key={i}
+                className={w.severity === "error"
+                  ? "rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+                  : "rounded-md border border-amber-300/60 bg-amber-50/50 p-3 text-sm text-amber-800 dark:bg-amber-950/20 dark:text-amber-300"}
+              >
+                <span className="font-semibold">{w.severity === "error" ? "Erro que bloqueia a aprovação: " : "Atenção: "}</span>
+                {w.message}
+              </div>
             ))}
           </CardContent>
         </Card>
@@ -207,6 +269,43 @@ export default async function ImportReviewPage({
         </Card>
       )}
 
+      {bnccSnapshots && bnccSnapshots.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Comparação BNCC do Word com o catálogo</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {bnccSnapshots.map((snapshot) => (
+              <div key={snapshot.code} className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="font-mono">{snapshot.code}</Badge>
+                  <Badge variant={snapshot.resolution === "conflict" ? "destructive" : "secondary"}>
+                    {snapshot.resolution === "matched" ? "Igual ao catálogo"
+                      : snapshot.resolution === "new" ? "Nova habilidade"
+                        : snapshot.resolution === "conflict" ? "Textos diferentes"
+                          : snapshot.resolution === "missing_description" ? "Sem descrição"
+                            : "Não mapeada"}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">Texto recebido no Word</p>
+                    <p className="mt-1 text-sm">{snapshot.imported_description ?? "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground">Texto mantido no catálogo</p>
+                    <p className="mt-1 text-sm">{snapshot.catalog_description ?? "—"}</p>
+                  </div>
+                </div>
+                {snapshot.resolution === "conflict" && importRow.status === "needs_review" && (
+                  <BnccConflictResolution importId={importRow.id} code={snapshot.code} />
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       {question && (
         <>
           <Card>
@@ -238,13 +337,21 @@ export default async function ImportReviewPage({
               {question.question_bncc_skills.length > 0 && (
                 <div className="sm:col-span-2">
                   <p className="text-xs font-medium text-muted-foreground">Habilidades BNCC</p>
-                  <div className="mt-1 flex flex-wrap gap-2">
+                  <div className="mt-2 grid gap-2">
                     {question.question_bncc_skills.map(
                       (s, i) =>
                         s.bncc_skills && (
-                          <Badge key={i} variant="outline" className="font-mono">
-                            {s.bncc_skills.code}
-                          </Badge>
+                          <div key={i} className="rounded-md border p-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className="font-mono">{s.bncc_skills.code}</Badge>
+                              {s.bncc_skills.verification_status === "pending" && (
+                                <Badge variant="outline" className="border-amber-300 text-amber-700">
+                                  Nova — será ativada ao aprovar
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">{s.bncc_skills.description}</p>
+                          </div>
                         ),
                     )}
                   </div>
@@ -345,6 +452,35 @@ export default async function ImportReviewPage({
             />
           )}
         </>
+      )}
+
+      {!question && (importRow.status === "failed" || importRow.status === "rejected") && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Tentar novamente</CardTitle></CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted-foreground">Envie a versão corrigida; o histórico deste arquivo será preservado.</p>
+            <ReprocessQuestionImport importId={importRow.id} />
+          </CardContent>
+        </Card>
+      )}
+
+      {events && events.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Histórico da importação</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {events.map((event) => (
+              <div key={event.id} className="flex flex-col gap-1 border-l-2 pl-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  <strong>{EVENT_LABELS[event.action] ?? event.action}</strong>
+                  {event.actor_id ? ` por ${actorNameById.get(event.actor_id) ?? "administrador"}` : ""}
+                </span>
+                <time className="text-xs text-muted-foreground">
+                  {new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(event.created_at))}
+                </time>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

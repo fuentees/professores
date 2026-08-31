@@ -1,4 +1,4 @@
-import type { ExtractedField } from "./types";
+import type { ExtractedField, ParsedBnccSkill } from "./types";
 
 /**
  * Busca um rótulo nas células de uma tabela (linha por linha). Dois layouts
@@ -65,15 +65,39 @@ export function cleanStrayPunctuation(value: string | null): string | null {
   return value.replace(/[\]\[]+$/g, "").trim() || null;
 }
 
-const BNCC_CODE_PATTERN = /\(?\b(EF\d{2}[A-Z]{2,4}\d{2})\)?/g;
+// Educação Infantil, Ensino Fundamental e Ensino Médio. Mantemos o padrão
+// estrito para não transformar números ou siglas soltas do documento em uma
+// habilidade curricular inexistente.
+const BNCC_CODE_PATTERN = /\(?\b((?:EI\d{2}[A-Z]{2}\d{2})|(?:EF\d{2}[A-Z]{2}\d{2})|(?:EM\d{2}(?:[A-Z]{2}\d{2}|[A-Z]{3}\d{3})))\b\)?/gi;
+
+export function extractBnccSkills(raw: string | null): ParsedBnccSkill[] {
+  if (!raw) return [];
+
+  const matches = [...raw.toUpperCase().matchAll(BNCC_CODE_PATTERN)];
+  const originalMatches = [...raw.matchAll(BNCC_CODE_PATTERN)];
+  const skills = new Map<string, ParsedBnccSkill>();
+
+  for (let index = 0; index < matches.length; index++) {
+    const code = matches[index][1];
+    const originalMatch = originalMatches[index];
+    const start = (originalMatch.index ?? 0) + originalMatch[0].length;
+    const end = originalMatches[index + 1]?.index ?? raw.length;
+    const description = raw
+      .slice(start, end)
+      .replace(/^[\s)\]};:,.\-–—]+/, "")
+      .replace(/[\s;|]+$/, "")
+      .trim();
+
+    if (!skills.has(code)) {
+      skills.set(code, { code, description: description.length >= 5 ? description : null });
+    }
+  }
+
+  return [...skills.values()];
+}
 
 export function extractBnccCodes(raw: string | null): string[] {
-  if (!raw) return [];
-  const codes = new Set<string>();
-  for (const match of raw.matchAll(BNCC_CODE_PATTERN)) {
-    codes.add(match[1]);
-  }
-  return [...codes];
+  return extractBnccSkills(raw).map((skill) => skill.code);
 }
 
 /** "[ ] Fácil      [X] Médio      [ ] Difícil" → identifica qual opção tem a marca. */

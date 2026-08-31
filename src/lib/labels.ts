@@ -92,4 +92,5 @@ export const QUESTION_IMPORT_STATUS_LABELS: Record<string, string> = {
   approved: "Aprovado",
   failed: "Erro",
   rejected: "Rejeitado",
+  superseded: "Substituído",
 };

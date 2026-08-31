@@ -3,7 +3,7 @@ import type { ParsedDocumentBlock, ParsedQuestionDraft, ParsedWarning } from "./
 import {
   cleanStrayPunctuation,
   extractBloomLevel,
-  extractBnccCodes,
+  extractBnccSkills,
   extractByLabel,
   extractDifficulty,
   extractHeaderFields,
@@ -50,7 +50,8 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
   const bloomRowText = headerCells.find((c) => BLOOM_ROW_MARKER.test(c) && !/Habilidade\s+BNCC/i.test(c));
   const bloomPrimaryRaw = extractBloomLevel(bloomRowText ?? null);
 
-  const bnccCodes = extractBnccCodes(fields.bnccRaw.value);
+  const bnccSkills = extractBnccSkills(fields.bnccRaw.value);
+  const bnccCodes = bnccSkills.map((skill) => skill.code);
   if (fields.bnccRaw.value && bnccCodes.length === 0) {
     warnings.push({
       severity: "warning",
@@ -219,6 +220,7 @@ export function extractQuestionDraft(bodyNodes: RawBodyNode[]): ParsedQuestionDr
       /Unidade\s*:\s*/i,
     ),
     knowledgeObjects,
+    bnccSkills,
     bnccCodes,
     difficultyRaw,
     pedagogicalNote: fields.pedagogicalNote,

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, FileWarning, Loader2, Upload, XCircle } from "lucide-react";
+import { CheckCircle2, FileWarning, Loader2, Trash2, Upload, XCircle } from "lucide-react";
 import { importQuestionDocx } from "@/actions/admin/question-imports";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,7 @@ type FileEntry = {
   status: FileStatus;
   importId?: string;
   message?: string;
+  summary?: { warnings: number; errors: number; bnccFound: number; bnccLinked: number };
 };
 
 const STATUS_LABEL: Record<FileStatus, string> = {
@@ -38,7 +39,11 @@ export function QuestionImportUploader() {
 
   function addFiles(files: FileList | File[]) {
     const docxFiles = [...files].filter((f) => f.name.toLowerCase().endsWith(".docx"));
-    setEntries((prev) => [...prev, ...docxFiles.map((file) => ({ file, status: "pending" as FileStatus }))]);
+    setEntries((prev) => {
+      const known = new Set(prev.map((entry) => `${entry.file.name}:${entry.file.size}:${entry.file.lastModified}`));
+      const unique = docxFiles.filter((file) => !known.has(`${file.name}:${file.size}:${file.lastModified}`));
+      return [...prev, ...unique.map((file) => ({ file, status: "pending" as FileStatus }))];
+    });
   }
 
   function handleDrop(event: React.DragEvent) {
@@ -61,7 +66,7 @@ export function QuestionImportUploader() {
             if (!result.questionId) {
               return { ...e, status: "failed", message: "Não foi possível interpretar este documento." };
             }
-            return { ...e, status: "needs_review", importId: result.importId };
+            return { ...e, status: "needs_review", importId: result.importId, summary: result.summary };
           }),
         );
       } catch (err) {
@@ -77,6 +82,9 @@ export function QuestionImportUploader() {
 
   const doneCount = entries.filter((e) => e.status === "needs_review").length;
   const errorCount = entries.filter((e) => e.status === "error" || e.status === "failed").length;
+  const blockingCount = entries.filter((entry) => (entry.summary?.errors ?? 0) > 0).length;
+  const warningCount = entries.reduce((total, entry) => total + (entry.summary?.warnings ?? 0), 0);
+  const bnccNewOrLinked = entries.reduce((total, entry) => total + (entry.summary?.bnccLinked ?? 0), 0);
 
   return (
     <div className="space-y-4">
@@ -114,14 +122,20 @@ export function QuestionImportUploader() {
                   </span>
                   <span className="flex items-center gap-2 text-muted-foreground">
                     {entry.status === "needs_review" && entry.importId ? (
-                      <Link href={`/admin/questoes/importacoes/${entry.importId}`} className="text-primary underline">
-                        Revisar
-                      </Link>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {(entry.summary?.errors ?? 0) > 0 && <span className="text-xs font-medium text-destructive">{entry.summary!.errors} erro(s)</span>}
+                        {(entry.summary?.warnings ?? 0) > 0 && <span className="text-xs">{entry.summary!.warnings} aviso(s)</span>}
+                        <Link href={`/admin/questoes/importacoes/${entry.importId}`} className="text-primary underline">Revisar</Link>
+                      </div>
                     ) : (
-                      <span>
-                        {STATUS_LABEL[entry.status]}
-                        {entry.message ? `: ${entry.message}` : ""}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span>{STATUS_LABEL[entry.status]}{entry.message ? `: ${entry.message}` : ""}</span>
+                        {entry.status === "pending" && (
+                          <Button type="button" variant="ghost" size="icon-sm" aria-label={`Remover ${entry.file.name}`} onClick={() => setEntries((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </span>
                 </div>
@@ -139,6 +153,18 @@ export function QuestionImportUploader() {
                 </p>
               )}
             </div>
+
+            {doneCount > 0 && (
+              <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-4">
+                <div><strong>{doneCount}</strong><p className="text-xs text-muted-foreground">processados</p></div>
+                <div><strong className={blockingCount ? "text-destructive" : undefined}>{blockingCount}</strong><p className="text-xs text-muted-foreground">com erro bloqueante</p></div>
+                <div><strong>{warningCount}</strong><p className="text-xs text-muted-foreground">avisos para revisar</p></div>
+                <div><strong>{bnccNewOrLinked}</strong><p className="text-xs text-muted-foreground">vínculos BNCC</p></div>
+                <div className="sm:col-span-4">
+                  <Link href="/admin/questoes/importacoes" className="font-medium text-primary underline">Abrir relatório completo e aprovação em massa →</Link>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

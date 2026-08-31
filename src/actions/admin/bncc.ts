@@ -10,6 +10,8 @@ import {
   bnccSkillSchema,
   bnccStageSchema,
 } from "@/lib/validations/bncc";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { recordQuestionImportEvent } from "@/lib/audit/question-import";
 
 export type ActionResult = { error: string | null };
 
@@ -32,7 +34,6 @@ export async function createBnccStage(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const guard = await guardAdmin();
   if (guard) return guard;
-
   const supabase = await createClient();
   const { error } = await supabase
     .from("bncc_stages")
@@ -178,6 +179,7 @@ export async function updateBnccSkill(id: string, input: unknown): Promise<Actio
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   const guard = await guardAdmin();
   if (guard) return guard;
+  const actor = await requireAdmin();
 
   const supabase = await createClient();
   const data = parsed.data;
@@ -191,9 +193,20 @@ export async function updateBnccSkill(id: string, input: unknown): Promise<Actio
       component_id: data.componentId,
       grade_id: data.gradeId || null,
       status: data.status,
+      verification_status: "verified",
     })
     .eq("id", id);
   if (error) return { error: error.message };
+  const admin = createAdminClient();
+  const { data: skill } = await admin.from("bncc_skills").select("source_import_id, code").eq("id", id).maybeSingle();
+  if (skill?.source_import_id) {
+    await recordQuestionImportEvent(admin, {
+      importId: skill.source_import_id,
+      actorId: actor.id,
+      action: "bncc_skill_updated",
+      details: { skillId: id, code: skill.code },
+    });
+  }
   revalidatePath(BNCC_PATH);
   return { error: null };
 }

@@ -22,7 +22,14 @@ export type QuestionType =
   | "mixed";
 export type BloomTaxonomyLevel = "lembrar" | "entender" | "aplicar" | "analisar" | "avaliar" | "criar";
 export type RubricLevel = "full" | "partial" | "none";
-export type QuestionImportStatus = "uploaded" | "processing" | "needs_review" | "approved" | "failed" | "rejected";
+export type QuestionImportStatus =
+  | "uploaded"
+  | "processing"
+  | "needs_review"
+  | "approved"
+  | "failed"
+  | "rejected"
+  | "superseded";
 export type BillingPeriod = "free" | "monthly" | "yearly";
 export type SubscriptionStatus = "active" | "expired" | "canceled";
 export type LearningActivityTypeDb =
@@ -606,6 +613,11 @@ export type Database = {
           error_message: string | null;
           created_at: string;
           processed_at: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          reprocessed_from_id: string | null;
+          replaced_by_id: string | null;
+          summary: Record<string, unknown>;
         };
         Insert: {
           id?: string;
@@ -619,6 +631,11 @@ export type Database = {
           error_message?: string | null;
           created_at?: string;
           processed_at?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          reprocessed_from_id?: string | null;
+          replaced_by_id?: string | null;
+          summary?: Record<string, unknown>;
         };
         Update: Partial<Database["public"]["Tables"]["question_imports"]["Insert"]>;
         Relationships: [];
@@ -860,6 +877,152 @@ export type Database = {
         Relationships: [];
       };
 
+      question_import_bncc_snapshots: {
+        Row: {
+          id: string;
+          import_id: string;
+          bncc_skill_id: string | null;
+          code: string;
+          imported_description: string | null;
+          catalog_description: string | null;
+          resolution: "matched" | "new" | "conflict" | "unmapped" | "missing_description";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id: string;
+          bncc_skill_id?: string | null;
+          code: string;
+          imported_description?: string | null;
+          catalog_description?: string | null;
+          resolution: "matched" | "new" | "conflict" | "unmapped" | "missing_description";
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_import_bncc_snapshots"]["Insert"]>;
+        Relationships: [];
+      };
+
+      question_import_events: {
+        Row: {
+          id: string;
+          import_id: string | null;
+          actor_id: string | null;
+          action: string;
+          details: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          import_id?: string | null;
+          actor_id?: string | null;
+          action: string;
+          details?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["question_import_events"]["Insert"]>;
+        Relationships: [];
+      };
+
+      lesson_plans: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          title: string;
+          subject_id: string | null;
+          grade_id: string | null;
+          theme: string;
+          duration_minutes: number;
+          class_count: number;
+          inclusion_profiles: string[];
+          class_context: string | null;
+          teacher_objectives: string | null;
+          output: unknown;
+          model: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          title: string;
+          subject_id?: string | null;
+          grade_id?: string | null;
+          theme: string;
+          duration_minutes: number;
+          class_count?: number;
+          inclusion_profiles?: string[];
+          class_context?: string | null;
+          teacher_objectives?: string | null;
+          output: unknown;
+          model: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["lesson_plans"]["Insert"]>;
+        Relationships: [];
+      };
+
+      lesson_plan_bncc_skills: {
+        Row: { id: string; lesson_plan_id: string; bncc_skill_id: string };
+        Insert: { id?: string; lesson_plan_id: string; bncc_skill_id: string };
+        Update: Partial<{ lesson_plan_id: string; bncc_skill_id: string }>;
+        Relationships: [];
+      };
+
+      ai_corrections: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          correction_type: "exercise" | "essay";
+          subject_id: string | null;
+          grade_id: string | null;
+          title: string;
+          teacher_context: string | null;
+          output: unknown;
+          model: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          correction_type: "exercise" | "essay";
+          subject_id?: string | null;
+          grade_id?: string | null;
+          title: string;
+          teacher_context?: string | null;
+          output: unknown;
+          model: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_corrections"]["Insert"]>;
+        Relationships: [];
+      };
+
+      ai_generation_events: {
+        Row: {
+          id: string;
+          teacher_id: string;
+          feature: "lesson_plan" | "exercise_correction" | "essay_correction";
+          resource_id: string | null;
+          model: string;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          teacher_id: string;
+          feature: "lesson_plan" | "exercise_correction" | "essay_correction";
+          resource_id?: string | null;
+          model: string;
+          input_tokens?: number | null;
+          output_tokens?: number | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_generation_events"]["Insert"]>;
+        Relationships: [];
+      };
+
       folders: {
         Row: {
           id: string;
@@ -929,6 +1092,9 @@ export type Database = {
           thematic_unit: string | null;
           knowledge_object: string | null;
           status: ActiveStatus;
+          source_type: "manual" | "word_import";
+          source_import_id: string | null;
+          verification_status: "pending" | "verified";
         };
         Insert: {
           id?: string;
@@ -939,6 +1105,9 @@ export type Database = {
           thematic_unit?: string | null;
           knowledge_object?: string | null;
           status?: ActiveStatus;
+          source_type?: "manual" | "word_import";
+          source_import_id?: string | null;
+          verification_status?: "pending" | "verified";
         };
         Update: Partial<Database["public"]["Tables"]["bncc_skills"]["Insert"]>;
         Relationships: [];

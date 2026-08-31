@@ -1,11 +1,13 @@
 import Link from "next/link";
 import {
   BookOpenText,
+  CalendarRange,
   ClipboardCheck,
   Download,
   GraduationCap,
   Heart,
   LayoutGrid,
+  ScanText,
   SquareStack,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -157,15 +159,29 @@ export default async function PainelPage() {
           </h2>
           <p className="text-sm text-muted-foreground">Vá direto para as ferramentas mais usadas no planejamento.</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {(
             [
+              {
+                href: "/painel/planejamento",
+                label: "Planejar aula",
+                description: "Crie um plano completo com BNCC e inclusão.",
+                icon: CalendarRange,
+                tint: "bg-bncc-soft text-bncc",
+              },
               {
                 href: "/painel/banco-de-questoes",
                 label: "Banco de questões",
                 description: "Selecione questões e monte avaliações.",
                 icon: SquareStack,
                 tint: "bg-assessment-soft text-assessment",
+              },
+              {
+                href: "/painel/corretor",
+                label: "Corretor com IA",
+                description: "Analise exercícios e redações por foto.",
+                icon: ScanText,
+                tint: "bg-activity-soft text-activity",
               },
               {
                 href: "/materiais",

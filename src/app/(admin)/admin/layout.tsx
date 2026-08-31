@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   BookMarked,
   BookOpen,
+  BarChart3,
   Crown,
   FolderOpen,
   GraduationCap,
@@ -37,6 +38,7 @@ const NAV_ITEMS: DashboardNavItem[] = [
   { href: "/admin/forum", label: "Fórum", icon: MessageSquare },
   { href: "/admin/professores", label: "Professores", icon: Users },
   { href: "/admin/questoes/importacoes", label: "Importações de questões", icon: Upload },
+  { href: "/admin/questoes/cobertura", label: "Cobertura do acervo", icon: BarChart3 },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

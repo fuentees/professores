@@ -43,6 +43,8 @@ export type BnccSkillRow = {
   component_id: string;
   grade_id: string | null;
   status: "active" | "inactive";
+  source_type: "manual" | "word_import";
+  verification_status: "pending" | "verified";
 };
 
 export function BnccSkillsManager({
@@ -225,25 +227,40 @@ export function BnccSkillsManager({
               <TableHead>Descrição</TableHead>
               <TableHead>Componente</TableHead>
               <TableHead>Série</TableHead>
+              <TableHead>Situação</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                   Nenhuma habilidade cadastrada ainda.
                 </TableCell>
               </TableRow>
             )}
             {rows.map((row) => (
               <TableRow key={row.id}>
-                <TableCell className="font-mono text-sm font-medium">
-                  <Badge variant="outline">{row.code}</Badge>
+                <TableCell className="text-sm font-medium">
+                  <div className="flex flex-col items-start gap-1">
+                    <Badge variant="outline" className="font-mono">{row.code}</Badge>
+                    {row.source_type === "word_import" && (
+                      <span className="text-xs text-muted-foreground">Importada do Word</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="max-w-md truncate text-muted-foreground">{row.description}</TableCell>
                 <TableCell className="text-muted-foreground">{componentName(row.component_id)}</TableCell>
                 <TableCell className="text-muted-foreground">{gradeName(row.grade_id)}</TableCell>
+                <TableCell>
+                  {row.verification_status === "pending" ? (
+                    <Badge variant="outline" className="border-amber-300 text-amber-700">Pendente</Badge>
+                  ) : row.status === "active" ? (
+                    <Badge variant="outline" className="border-emerald-300 text-emerald-700">Ativa</Badge>
+                  ) : (
+                    <Badge variant="outline">Inativa</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="flex justify-end gap-1">
                   <Button variant="ghost" size="icon-sm" onClick={() => openEdit(row)}>
                     <Pencil className="h-4 w-4" />

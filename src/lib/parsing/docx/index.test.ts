@@ -18,6 +18,7 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.subjectName.value).toBe("História");
     expect(draft.gradeName.value).toBe("4º Ano");
     expect(draft.bnccCodes).toContain("EF04HI03");
+    expect(draft.bnccSkills.find((skill) => skill.code === "EF04HI03")?.description).toContain("memória");
     expect(draft.difficultyRaw.value).toBe("hard");
     expect(draft.bloomPrimaryRaw.value).toBe("avaliar");
     expect(draft.statementCandidates).toHaveLength(1);
@@ -142,6 +143,7 @@ describe("parseQuestionDocx — documentos reais do acervo", () => {
     expect(draft.code.value).not.toBe("GEO 4-001");
     expect(draft.subjectName.value).toBe("Geografia");
     expect(draft.bnccCodes).toContain("EF04GE01");
+    expect(draft.bnccSkills.find((skill) => skill.code === "EF04GE01")?.description).toContain("cultura local");
   });
 
   it("preserva espaços no gabarito quando o Word alterna formatação no meio da frase (GEO 4-001)", async () => {

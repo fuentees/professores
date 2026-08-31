@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { approveQuestionImport, rejectQuestionImport } from "@/actions/admin/question-imports";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReprocessQuestionImport } from "@/components/admin/reprocess-question-import";
 
 export function ImportReviewActions({
   importId,
@@ -55,6 +56,7 @@ export function ImportReviewActions({
         />
         {!alreadyApproved && (
           <>
+            <ReprocessQuestionImport importId={importId} />
             <Button type="button" onClick={handleApprove} disabled={pending !== null}>
               {pending === "approve" ? "Aprovando..." : "Aprovar"}
             </Button>

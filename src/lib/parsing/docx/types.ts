@@ -44,6 +44,12 @@ export type ParsedWarning = {
   message: string;
 };
 
+export type ParsedBnccSkill = {
+  code: string;
+  /** Texto copiado literalmente do campo "Habilidade BNCC" do Word. */
+  description: string | null;
+};
+
 export type ParsedQuestionDraft = {
   code: ExtractedField<string>;
   subjectName: ExtractedField<string>;
@@ -53,6 +59,7 @@ export type ParsedQuestionDraft = {
   bookName: ExtractedField<string>;
   bookUnit: ExtractedField<string>;
   knowledgeObjects: string[];
+  bnccSkills: ParsedBnccSkill[];
   bnccCodes: string[];
   difficultyRaw: ExtractedField<"easy" | "medium" | "hard">;
   pedagogicalNote: ExtractedField<string>;
