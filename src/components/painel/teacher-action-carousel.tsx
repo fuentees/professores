@@ -72,7 +72,7 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
 
   return (
     <section
-      className="relative isolate mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(120deg,#172b4d_0%,#1d4260_54%,#b92e0b_130%)] text-white shadow-xl shadow-primary/10"
+      className="relative isolate w-full overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(120deg,#172b4d_0%,#1d4260_54%,#b92e0b_130%)] text-white shadow-xl shadow-primary/10"
       aria-roledescription="carrossel"
       aria-label="Atalhos para começar"
     >
@@ -92,7 +92,7 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
         height={1100}
         sizes="(min-width: 1280px) 260px, (min-width: 768px) 210px, 150px"
         preload
-        className="pointer-events-none absolute -bottom-12 -left-8 z-[1] hidden h-[21rem] w-auto select-none object-contain drop-shadow-2xl md:block xl:-left-3 xl:h-[24rem]"
+        className="pointer-events-none absolute -bottom-12 -left-8 z-[1] hidden h-[21rem] w-auto select-none object-contain drop-shadow-2xl md:block xl:-left-3"
         aria-hidden
       />
       <Image
@@ -102,7 +102,7 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
         height={1100}
         sizes="(min-width: 1280px) 260px, (min-width: 768px) 210px, 150px"
         preload
-        className="pointer-events-none absolute -bottom-12 -right-8 z-[1] hidden h-[21rem] w-auto select-none object-contain drop-shadow-2xl md:block xl:-right-3 xl:h-[24rem]"
+        className="pointer-events-none absolute -bottom-12 -right-8 z-[1] hidden h-[21rem] w-auto select-none object-contain drop-shadow-2xl md:block xl:-right-3"
         aria-hidden
       />
 
@@ -125,8 +125,8 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[27rem] max-w-3xl flex-col items-center px-5 pb-28 pt-7 text-center sm:px-8 md:min-h-[20rem] md:justify-center md:px-44 md:py-5 lg:px-48 xl:px-40">
-        <p className="mb-3 text-sm font-medium text-white/80">
+      <div className="relative z-10 mx-auto flex min-h-[25rem] max-w-3xl flex-col items-center px-5 pb-28 pt-6 text-center sm:px-8 md:min-h-[18rem] md:justify-center md:px-44 md:py-3 lg:px-48 xl:px-40">
+        <p className="mb-2 text-xs font-medium text-white/80 sm:text-sm">
           Olá, <strong className="font-semibold text-white">{teacherName}</strong>{" "}
           <span aria-hidden>👋</span>
           <span className="ml-1.5 text-white/60">O que você precisa preparar hoje?</span>
@@ -136,15 +136,15 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
             <CurrentIcon className="size-3.5" aria-hidden />
             {currentSlide.eyebrow}
           </span>
-          <h2 className="mt-3 max-w-2xl text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+          <h2 className="mt-2.5 max-w-2xl text-2xl font-bold leading-tight tracking-tight sm:text-[1.65rem]">
             {currentSlide.title}
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/75 sm:text-base">
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-white/75">
             {currentSlide.description}
           </p>
           <Link
             href={currentSlide.href}
-            className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#172b4d] shadow-lg transition hover:-translate-y-0.5 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#172b4d]"
+            className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#172b4d] shadow-lg transition hover:-translate-y-0.5 hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#172b4d]"
           >
             <CurrentIcon className="size-4" aria-hidden />
             {currentSlide.cta}
@@ -152,7 +152,7 @@ export function TeacherActionCarousel({ teacherName }: { teacherName: string }) 
           </Link>
         </div>
 
-        <div className="mt-3 flex items-center gap-3" aria-label="Controles do destaque">
+        <div className="mt-2.5 flex items-center gap-3" aria-label="Controles do destaque">
           <button
             type="button"
             onClick={showPrevious}
