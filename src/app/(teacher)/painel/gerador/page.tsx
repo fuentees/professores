@@ -6,6 +6,7 @@ import { getCurrentProfile } from "@/lib/auth/get-current-profile";
 import { loadSelectedQuestions } from "@/actions/exam-generator";
 import { ExamWorkspace } from "@/components/painel/exam-workspace";
 import { Badge } from "@/components/ui/badge";
+import { ClipboardCheck, Library, NotebookTabs } from "lucide-react";
 
 export default async function GeradorPage({ searchParams }: PageProps<"/painel/gerador">) {
   const params = await searchParams;
@@ -14,21 +15,32 @@ export default async function GeradorPage({ searchParams }: PageProps<"/painel/g
   const selected = selectedIds.length > 0 ? await loadSelectedQuestions(selectedIds) : null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Criar avaliação</h1>
-          <p className="text-muted-foreground">
-            Escolha série, disciplina e tema, configure a dificuldade e a quantidade de questões, e
-            revise a prévia antes de salvar.
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
+            <ClipboardCheck className="size-4" />
+            GERADOR DE AVALIAÇÕES
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Monte sua prova com segurança</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Escolha o conteúdo e o nível. Depois, revise, troque e organize cada questão antes de baixar.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/painel/provas">Avaliações salvas</Link>}
-        />
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/painel/banco-de-questoes"><Library />Banco de questões</Link>}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/painel/provas"><NotebookTabs />Provas salvas</Link>}
+          />
+        </div>
       </div>
 
       {selected?.error && (
